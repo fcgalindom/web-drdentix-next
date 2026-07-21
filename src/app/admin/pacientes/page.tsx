@@ -45,7 +45,10 @@ export default function PacientesPage() {
   async function save() {
     setSaving(true);
     try {
-      const { data } = await api.post('/admin/patients', form);
+      const { id, ...rest } = form;
+      const payload: any = { ...rest };
+      if (id) payload.id = id;
+      const { data } = await api.post('/admin/patients', payload);
       toast.success(form.id ? 'Paciente actualizado' : 'Paciente creado');
       setOpen(false);
       if (!form.id) router.push(`/admin/citas?patient_id=${data.id}`);

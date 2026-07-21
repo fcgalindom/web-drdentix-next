@@ -56,7 +56,10 @@ export default function OdontologosPage() {
   async function save() {
     setSaving(true);
     try {
-      await api.post('/admin/dentists', form);
+      const { id, ...rest } = form;
+      const payload: any = { ...rest };
+      if (id) payload.id = id;
+      await api.post('/admin/dentists', payload);
       toast.success('Guardado'); setOpen(false); load(page);
     } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
     finally { setSaving(false); }

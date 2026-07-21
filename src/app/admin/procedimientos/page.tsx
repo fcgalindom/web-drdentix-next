@@ -31,7 +31,10 @@ export default function ProcedimientosPage() {
   async function save() {
     setSaving(true);
     try {
-      await api.post('/admin/procedures', { ...form, duration: Number(form.duration) });
+      const { id, ...rest } = form;
+      const payload: any = { ...rest, duration: Number(form.duration) };
+      if (id) payload.id = id;
+      await api.post('/admin/procedures', payload);
       toast.success('Guardado'); setOpen(false); load(page);
     } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
     finally { setSaving(false); }

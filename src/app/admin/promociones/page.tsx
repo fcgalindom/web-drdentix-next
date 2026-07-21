@@ -33,7 +33,10 @@ export default function PromocionesPage() {
   async function save() {
     setSaving(true);
     try {
-      await api.post('/admin/promotions', { ...form, discount: Number(form.discount), limit_patients: Number(form.limit_patients) });
+      const { id, ...rest } = form;
+      const payload: any = { ...rest, discount: Number(form.discount), limit_patients: Number(form.limit_patients) };
+      if (id) payload.id = id;
+      await api.post('/admin/promotions', payload);
       toast.success('Guardado'); setOpen(false); load(page);
     } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
     finally { setSaving(false); }

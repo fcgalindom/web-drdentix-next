@@ -35,7 +35,10 @@ export default function ProductosPage() {
   async function save() {
     setSaving(true);
     try {
-      await api.post('/admin/products', { ...form, amount: Number(form.amount) });
+      const { id, ...rest } = form;
+      const payload: any = { ...rest, amount: Number(form.amount) };
+      if (id) payload.id = id;
+      await api.post('/admin/products', payload);
       toast.success('Guardado'); setOpen(false); load(page);
     } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
     finally { setSaving(false); }
