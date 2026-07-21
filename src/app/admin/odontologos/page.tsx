@@ -75,7 +75,7 @@ export default function OdontologosPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#013253]">Odontólogos</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Odontólogos</h1>
         <Button onClick={() => { setForm(empty); setOpen(true); }}><Plus size={16} /> Crear</Button>
       </div>
 
@@ -88,7 +88,7 @@ export default function OdontologosPage() {
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[#00AFF1] text-white">
+          <thead className="bg-[#0EA5E9] text-white">
             <tr>{['Nombre', 'Cédula', 'Email', 'Ciudad', 'Procedimientos', 'Estado', 'Acciones'].map(h => (
               <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
             ))}</tr>
@@ -103,8 +103,8 @@ export default function OdontologosPage() {
                 <td className="px-4 py-3 text-gray-600">{d.procedures?.length ?? 0}</td>
                 <td className="px-4 py-3"><Toggle active={d.user?.state === 'Activo'} onToggle={() => toggleState(d)} /></td>
                 <td className="px-4 py-3 flex gap-2">
-                  <button onClick={() => openEdit(d)} className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
-                  <button onClick={() => router.push(`/admin/odontologos/${d.id}/horario`)} className="p-1.5 text-[#7CB91D] hover:bg-green-50 rounded"><CalendarDays size={15} /></button>
+                  <button onClick={() => openEdit(d)} className="p-1.5 text-[#0F172A] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
+                  <button onClick={() => router.push(`/admin/odontologos/${d.id}/horario`)} className="p-1.5 text-[#0369A1] hover:bg-green-50 rounded"><CalendarDays size={15} /></button>
                 </td>
               </tr>
             ))}
@@ -131,7 +131,7 @@ export default function OdontologosPage() {
               {form.procedure_ids.map((id: number) => {
                 const p = procedures.find(x => x.id === id);
                 return p ? (
-                  <span key={id} className="flex items-center gap-1 bg-[#e1fea4] text-[#013253] text-xs px-2 py-1 rounded-full">
+                  <span key={id} className="flex items-center gap-1 bg-[#e1fea4] text-[#0F172A] text-xs px-2 py-1 rounded-full">
                     {p.name}
                     <button onClick={() => removeProcedure(id)}><X size={12} /></button>
                   </span>

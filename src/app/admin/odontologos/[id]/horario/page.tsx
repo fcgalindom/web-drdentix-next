@@ -59,13 +59,13 @@ export default function HorarioPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#013253]">Horario del odontólogo</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Horario del odontólogo</h1>
         <Button onClick={save} loading={saving}>Guardar</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-[#00AFF1] text-white">
+          <thead className="bg-[#0EA5E9] text-white">
             <tr>
               <th className="px-4 py-3 text-left font-semibold">Asunto</th>
               {DAYS.map(d => <th key={d} className="px-3 py-3 text-center font-semibold min-w-[110px]">{d}</th>)}
@@ -87,7 +87,7 @@ export default function HorarioPage() {
                     {type === 'check' ? (
                       <input type="checkbox" checked={Boolean(slot[key as keyof Slot])}
                         onChange={(e) => update(slot.day, key as keyof Slot, e.target.checked)}
-                        className="w-4 h-4 accent-[#00AFF1]" />
+                        className="w-4 h-4 accent-[#0EA5E9]" />
                     ) : (
                       <select value={String(slot[key as keyof Slot])}
                         disabled={!slot.attend || (key.includes('break') && !slot.break)}

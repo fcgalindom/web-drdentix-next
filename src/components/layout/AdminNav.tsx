@@ -55,29 +55,33 @@ export default function AdminNav() {
 
   return (
     <>
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-screen-xl mx-auto px-4 h-16 flex items-center justify-between">
+      <nav className="bg-white border-b border-slate-100 shadow-sm">
+        <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/admin" className="flex items-center gap-2">
-            <span className="text-[#013253] font-bold text-xl">Dr. Dentix</span>
+            <span className="text-[#0F172A] font-extrabold text-lg" style={{fontFamily:'Manrope,sans-serif'}}>Dr. Dentix</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Button size="sm" onClick={() => setShowVerify(true)}>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setShowVerify(true)}>
               <Search size={14} /> Verificar cita
             </Button>
-            <Button size="sm" onClick={() => router.push('/admin/citas/nueva')}>
+            <Button size="sm" variant="outline" onClick={() => router.push('/admin/citas/nueva')}>
               <Calendar size={14} /> Agendar cita
             </Button>
             <Button size="sm" onClick={() => setShowCreate(true)}>
               <UserPlus size={14} /> Crear paciente
             </Button>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <span className="text-sm text-gray-600 hidden md:block">{user?.type_user}</span>
-            <button onClick={logout} className="p-2 text-gray-500 hover:text-red-600 transition-colors">
-              <LogOut size={18} />
+            <div className="w-px h-5 bg-slate-200 mx-1" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-[#0EA5E9] flex items-center justify-center text-white text-xs font-bold">
+                {user?.type_user?.[0] ?? 'A'}
+              </div>
+              <span className="text-xs font-medium text-slate-600 hidden md:block">{user?.type_user}</span>
+            </div>
+            <button onClick={logout} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+              <LogOut size={16} />
             </button>
           </div>
         </div>
-        <div className="h-1.5 bg-[#013253]" />
       </nav>
 
       {/* Verificar cita modal */}

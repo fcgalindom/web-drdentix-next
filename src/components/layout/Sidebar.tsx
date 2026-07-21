@@ -19,16 +19,18 @@ export default function Sidebar() {
   const path = usePathname();
 
   return (
-    <aside className="w-56 shrink-0 bg-[#013253] min-h-screen pt-4">
+    <aside className="w-56 shrink-0 bg-[#0F172A] min-h-screen pt-6 flex flex-col gap-1">
       {adminLinks.map(({ href, label, icon: Icon }) => {
         const active = path.startsWith(href);
         return (
           <Link key={href} href={href}
             className={cn(
-              'flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors',
-              active ? 'bg-white/10 text-white border-r-4 border-[#7CB91D]' : 'text-white/70 hover:text-white hover:bg-white/5'
+              'flex items-center gap-3 mx-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all',
+              active
+                ? 'bg-[#0EA5E9]/15 text-[#0EA5E9] border border-[#0EA5E9]/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             )}>
-            <Icon size={17} />
+            <Icon size={16} />
             {label}
           </Link>
         );

@@ -112,9 +112,9 @@ export default function CitasAdminPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[#013253]">Citas</h1>
-          <span className="bg-[#7CB91D] text-white text-xs px-2 py-1 rounded-full">{meta?.total ?? 0}</span>
-          <span className="bg-[#013253] text-white text-xs px-2 py-1 rounded-full">{parseCOP(income)}</span>
+          <h1 className="text-2xl font-bold text-[#0F172A]">Citas</h1>
+          <span className="bg-[#0369A1] text-white text-xs px-2 py-1 rounded-full">{meta?.total ?? 0}</span>
+          <span className="bg-[#0F172A] text-white text-xs px-2 py-1 rounded-full">{parseCOP(income)}</span>
           <span className="text-xs text-gray-500">{pending} pendientes</span>
         </div>
         <Button onClick={() => window.location.href = '/admin/citas/nueva'}><Plus size={16} /> Nueva cita</Button>
@@ -147,16 +147,16 @@ export default function CitasAdminPage() {
       {!filters.date_from && !filters.date_to && !filters.patient && (
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => setDateOffset(d => d - 1)} className="p-1.5 border rounded hover:bg-gray-100"><ChevronLeft size={16} /></button>
-          <span className="text-sm font-medium text-[#013253] capitalize">{dateLabel()}</span>
+          <span className="text-sm font-medium text-[#0F172A] capitalize">{dateLabel()}</span>
           <button onClick={() => setDateOffset(d => d + 1)} className="p-1.5 border rounded hover:bg-gray-100"><ChevronRight size={16} /></button>
-          <button onClick={() => setDateOffset(0)} className="text-xs text-[#7CB91D] hover:underline ml-1">Hoy</button>
+          <button onClick={() => setDateOffset(0)} className="text-xs text-[#0369A1] hover:underline ml-1">Hoy</button>
         </div>
       )}
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-[#013253] text-white">
+          <thead className="bg-[#0F172A] text-white">
             <tr>{['Paciente', 'Cédula', 'Teléfono', 'Odontólogo', 'Procedimiento', 'Fecha', 'Hora', 'Estado', 'Acciones'].map(h => (
               <th key={h} className="px-3 py-3 text-left font-semibold">{h}</th>
             ))}</tr>
@@ -177,7 +177,7 @@ export default function CitasAdminPage() {
                     {(a.state === 'Activo' || a.state === 'Recordado') && (
                       <>
                         <button onClick={() => { setSelected(a); setPayModal(true); setPayments([{ price: '', procedure_id: '' }]); }}
-                          className="p-1 bg-[#7CB91D] text-white rounded text-xs hover:bg-[#6aa018]"><FileText size={13} /></button>
+                          className="p-1 bg-[#0369A1] text-white rounded text-xs hover:bg-[#6aa018]"><FileText size={13} /></button>
                         <button onClick={() => markWhatsapp(a)} title="WhatsApp"
                           className="p-1 bg-green-500 text-white rounded hover:bg-green-600"><MessageCircle size={13} /></button>
                         <button onClick={() => markPhone(a.id)} title="Llamada"
@@ -224,7 +224,7 @@ export default function CitasAdminPage() {
                 </div>
               ))}
               <button onClick={() => setPayments([...payments, { price: '', procedure_id: '' }])}
-                className="text-[#7CB91D] text-xs hover:underline">+ Agregar ítem</button>
+                className="text-[#0369A1] text-xs hover:underline">+ Agregar ítem</button>
             </div>
 
             <div className="flex gap-3">
