@@ -4,6 +4,6 @@ import { useRouter } from 'next/navigation';
 
 export default function AdminHome() {
   const router = useRouter();
-  useEffect(() => { router.replace('/admin/citas'); }, [router]);
+  // useEffect(() => { router.replace('/admin/citas'); }, [router]);
   return null;
 }
