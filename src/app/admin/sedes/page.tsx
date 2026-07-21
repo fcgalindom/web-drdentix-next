@@ -39,7 +39,10 @@ export default function SedesPage() {
   async function save() {
     setSaving(true);
     try {
-      await api.post('/admin/branches', form);
+      const { id, ...rest } = form;
+      const payload: any = { ...rest };
+      if (id) payload.id = id;
+      await api.post('/admin/branches', payload);
       toast.success(form.id ? 'Sede actualizada' : 'Sede creada');
       setOpen(false);
       load(page);

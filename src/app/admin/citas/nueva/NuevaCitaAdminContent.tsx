@@ -36,7 +36,7 @@ export default function NuevaCitaAdminContent() {
     setForm(f => ({ ...f, procedure_id: procedureId, dentist_procedure_id: '', hour: '' }));
     if (!procedureId) return;
     const { data } = await api.post('/staff/appointments/by-procedure', { procedure_id: procedureId });
-    setDentistOptions(data);
+    setDentistOptions(data.data ?? data);
     setShowDentistModal(true);
   }
 

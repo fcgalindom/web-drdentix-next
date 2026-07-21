@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogOut, Calendar, UserPlus, Search } from 'lucide-react';
@@ -12,7 +12,8 @@ import Button from '@/components/ui/Button';
 
 export default function AdminNav() {
   const router = useRouter();
-  const user = getUser();
+  const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
+  useEffect(() => { setUser(getUser()); }, []);
   const [showCreate, setShowCreate] = useState(false);
   const [showVerify, setShowVerify] = useState(false);
   const [verifyDoc, setVerifyDoc] = useState('');
