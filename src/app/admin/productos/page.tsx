@@ -57,13 +57,13 @@ export default function ProductosPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#013253]">Inventario médico</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Inventario médico</h1>
         <Button onClick={() => { setForm(empty); setOpen(true); }}><Plus size={16} /> Crear</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">
-          <thead className="bg-[#00AFF1] text-white">
+          <thead className="bg-[#0EA5E9] text-white">
             <tr>{['N°', 'Principio activo', 'Concentración', 'Cant.', 'Forma farmacéutica', 'Presentación', 'Semáforo', 'Vencimiento', 'Ingreso', ''].map(h => (
               <th key={h} className="px-3 py-3 text-left font-semibold">{h}</th>
             ))}</tr>
@@ -83,7 +83,7 @@ export default function ProductosPage() {
                 <td className="px-3 py-2 text-gray-600">{p.expiration_date}</td>
                 <td className="px-3 py-2 text-gray-600">{p.date_of_admission}</td>
                 <td className="px-3 py-2 flex gap-1">
-                  <button onClick={() => { setForm({ ...p, amount: String(p.amount) }); setOpen(true); }} className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={14} /></button>
+                  <button onClick={() => { setForm({ ...p, amount: String(p.amount) }); setOpen(true); }} className="p-1.5 text-[#0F172A] hover:bg-blue-50 rounded"><Pencil size={14} /></button>
                   <button onClick={() => remove(p.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
                 </td>
               </tr>

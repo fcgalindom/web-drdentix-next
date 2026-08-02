@@ -50,13 +50,13 @@ export default function ProcedimientosPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#013253]">Procedimientos</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Procedimientos</h1>
         <Button onClick={() => { setForm({ id: 0, name: '', duration: '' }); setOpen(true); }}><Plus size={16} /> Crear</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[#00AFF1] text-white">
+          <thead className="bg-[#0EA5E9] text-white">
             <tr>{['Nombre', 'Duración', 'Estado', ''].map(h => <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>)}</tr>
           </thead>
           <tbody>
@@ -67,7 +67,7 @@ export default function ProcedimientosPage() {
                 <td className="px-4 py-3"><Toggle active={p.state === 'Activo'} onToggle={() => toggleState(p)} /></td>
                 <td className="px-4 py-3">
                   <button onClick={() => { setForm({ id: p.id, name: p.name, duration: String(p.duration) }); setOpen(true); }}
-                    className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
+                    className="p-1.5 text-[#0F172A] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                 </td>
               </tr>
             ))}

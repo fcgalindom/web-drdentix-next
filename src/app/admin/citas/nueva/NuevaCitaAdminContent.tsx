@@ -67,7 +67,7 @@ export default function NuevaCitaAdminContent() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-[#013253] mb-6">Nueva cita (Admin)</h1>
+      <h1 className="text-2xl font-bold text-[#0F172A] mb-6">Nueva cita (Admin)</h1>
 
       <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
         <div className="flex flex-col gap-1">
@@ -128,7 +128,7 @@ export default function NuevaCitaAdminContent() {
           {slots.length === 0 && <p className="text-gray-500 text-sm">No hay horarios disponibles para esta fecha.</p>}
           {slots.map((s) => (
             <button key={s.hour_start} onClick={() => { setForm(f => ({ ...f, hour: s.hour_start })); setShowSlotsModal(false); }}
-              className={`px-3 py-2 rounded-full text-sm border transition-colors ${form.hour === s.hour_start ? 'bg-[#00AFF1] text-white border-[#00AFF1]' : 'border-gray-300 hover:border-[#00AFF1]'}`}>
+              className={`px-3 py-2 rounded-full text-sm border transition-colors ${form.hour === s.hour_start ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'border-gray-300 hover:border-[#0EA5E9]'}`}>
               {s.hour_start} – {s.hour_end}
             </button>
           ))}

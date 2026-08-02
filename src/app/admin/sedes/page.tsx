@@ -62,13 +62,13 @@ export default function SedesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#013253]">Sedes</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Sedes</h1>
         <Button onClick={openCreate}><Plus size={16} /> Crear</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[#00AFF1] text-white">
+          <thead className="bg-[#0EA5E9] text-white">
             <tr>
               {['Nombre', 'Dirección', 'Contacto', 'Ciudad', 'Estado', 'Acciones'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
@@ -86,7 +86,7 @@ export default function SedesPage() {
                   <Toggle active={b.state === 'Activo'} onToggle={() => toggleState(b)} />
                 </td>
                 <td className="px-4 py-3">
-                  <button onClick={() => openEdit(b)} className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
+                  <button onClick={() => openEdit(b)} className="p-1.5 text-[#0F172A] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                 </td>
               </tr>
             ))}

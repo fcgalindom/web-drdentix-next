@@ -1,9 +1,9 @@
 export default function Footer() {
   return (
-    <footer className="bg-[#013253] text-white py-8 mt-auto">
+    <footer className="bg-[#0F172A] text-white py-8 mt-auto">
       <div className="max-w-screen-xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <h4 className="font-semibold mb-3 text-[#00AFF1]">Términos y condiciones</h4>
+          <h4 className="font-semibold mb-3 text-[#0EA5E9]">Términos y condiciones</h4>
           <ul className="space-y-1 text-sm text-white/70">
             <li>Políticas de privacidad</li>
             <li>Términos y condiciones</li>
@@ -11,7 +11,7 @@ export default function Footer() {
           </ul>
         </div>
         <div>
-          <h4 className="font-semibold mb-3 text-[#00AFF1]">Información de contacto</h4>
+          <h4 className="font-semibold mb-3 text-[#0EA5E9]">Información de contacto</h4>
           <p className="text-sm text-white/70">(+57) 315 654 9290</p>
           <p className="text-sm text-white/70">Dr.Dentix@hotmail.com</p>
         </div>

@@ -52,13 +52,13 @@ export default function PromocionesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#013253]">Promociones</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Promociones</h1>
         <Button onClick={() => { setForm(empty); setOpen(true); }}><Plus size={16} /> Crear</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[#00AFF1] text-white">
+          <thead className="bg-[#0EA5E9] text-white">
             <tr>{['Fecha inicio', 'Fecha fin', 'Detalle', 'Descuento', 'Límite', 'Estado', ''].map(h => (
               <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
             ))}</tr>
@@ -74,7 +74,7 @@ export default function PromocionesPage() {
                 <td className="px-4 py-3"><Toggle active={p.status === 1} onToggle={() => deactivate(p)} /></td>
                 <td className="px-4 py-3">
                   <button onClick={() => { setForm({ id: p.id, date_start: p.date_start, date_end: p.date_end, details: p.details, discount: String(p.discount), limit_patients: String(p.limit_patients) }); setOpen(true); }}
-                    className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
+                    className="p-1.5 text-[#0F172A] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                 </td>
               </tr>
             ))}
@@ -90,7 +90,7 @@ export default function PromocionesPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Detalles *</label>
             <textarea rows={4} value={form.details} onChange={(e) => setForm({ ...form, details: e.target.value })}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#00AFF1] outline-none resize-none" />
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#0EA5E9] outline-none resize-none" />
           </div>
           <Input label="Descuento (%)" type="number" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} />
           <Input label="Límite de pacientes" type="number" value={form.limit_patients} onChange={(e) => setForm({ ...form, limit_patients: e.target.value })} />

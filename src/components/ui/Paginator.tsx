@@ -23,7 +23,7 @@ export default function Paginator({ meta, onChange }: { meta: Meta; onChange: (p
         </button>
         {pages.map((p) => (
           <button key={p} onClick={() => onChange(p)}
-            className={`w-7 h-7 text-xs rounded font-medium transition-colors ${p === meta.current_page ? 'bg-[#013253] text-white' : 'hover:bg-gray-100 text-gray-700'}`}>
+            className={`w-7 h-7 text-xs rounded-lg font-semibold transition-all ${p === meta.current_page ? 'bg-[#0EA5E9] text-white shadow-sm' : 'hover:bg-[#F0F9FF] text-slate-600'}`}>
             {p}
           </button>
         ))}
