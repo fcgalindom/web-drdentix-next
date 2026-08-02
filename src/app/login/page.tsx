@@ -32,7 +32,7 @@ export default function LoginPage() {
   async function loginStaff() {
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login/staff', { email, password });
+      const { data } = await api.post('/auth/login', { email, password });
       setSession(data.token, data.user);
       router.replace(data.user.type_user === 'Dentist' ? '/dentist/citas' : '/admin/citas');
     } catch (e: any) {

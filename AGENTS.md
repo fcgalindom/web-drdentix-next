@@ -6,49 +6,54 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Dr. Dentix Frontend
 
-## Quick start
+## Commands
 
 ```bash
-npm run dev      # dev server on :3000
+npm run dev      # dev :3000
 npm run build    # production build
 npm run start    # serve production build
 ```
 
-No lint, typecheck, or test scripts exist.
+npm only (package-lock.json). No lint, typecheck, or test scripts.
 
-## Project structure
+## Architecture
 
-- `src/app/` — App Router — role-based route groups: `admin/`, `dentist/`, `patient/`, `login/`
-- `src/components/ui/` — Button, Input, Modal, Badge, Paginator, Toggle
-- `src/components/layout/` — AdminNav (sidebar+topbar), PatientNav, Sidebar, Footer
-- `src/lib/api.ts` — shared axios instance
-- `src/lib/auth.ts` — cookie-based session (token + user JSON)
-- `src/lib/utils.ts` — formatting helpers
-- `src/hooks/useAuth.ts` — role-gated client component guard
-- `@/*` alias maps to `./src/*` (tsconfig paths)
+- `src/app/` — App Router, role-based: `admin/`, `dentist/`, `patient/`, `login/`
+- **All pages are `'use client'`** — no Server Components except layouts.
+- `PatientNav` is shared between `/dentist/*` and `/patient/*` layouts (switches links by `type_user`).
+- `@/*` → `./src/*`
 
-## Auth flow
+## Auth
 
-- `NEXT_PUBLIC_API_URL` env var; default `http://localhost:8000/api`
-- Patients login by document: POST `/auth/login/patient`
-- Staff login by email+password: POST `/auth/login/staff`
-- Session stored in cookies (`token`, `user`) via `setSession()`, expires 7 days
-- Axios interceptor auto-attaches `Bearer` token and redirects to `/login` on 401
-- Client guard: `useAuth(requiredRole?)` hook, redirects to `/login` if missing/unauthorized
-- Public-only route: `/login`
+- `NEXT_PUBLIC_API_URL` (default `http://localhost:8000/api`), not committed in `.env*`.
+- Login: `POST /auth/login` (staff, email+password) or `/auth/login/patient` (document).
+- Login response returns `{ token, user }` where `user` includes `company_id`.
+- Session: `setSession(token, user)` → cookies, 7-day expiry.
+- Axios interceptor attaches `Bearer`; on 401 removes cookies but **does not redirect** — `window.location.href = '/login'` is commented out.
+- `useAuth(requiredRole?)` guard — no user or wrong role → `router.replace('/login')`.
+- `AuthUser` interface: `{ id, document, email, type_user, photo, state, company_id?, roles?, permissions? }`.
+- Public only: `/login`. Root `/` redirects by `type_user` cookie.
 
-## Routing
+## Routes
 
-- `/` — reads cookie, redirects by `type_user`: Administrator → `/admin/citas`, Dentist → `/dentist/citas`, Patient → `/patient/citas`
-- Admin routes have sidebar nav; Dentist/Patient routes have top nav only
-- Admin nav: Citas, Pacientes, Odontólogos, Sedes, Procedimientos, Productos, Promociones, Reportes
-- Dentist nav: Perfil, Citas, Horario
-- Patient nav: Perfil, Agendar Cita, Citas
+- Admin: Citas, Pacientes, Odontólogos, Sedes, Procedimientos, Productos, Promociones, Reportes (stub), **Usuarios, Roles, Permisos**
+- Dentist: Perfil, Citas, Horario
+- Patient: Perfil, Agendar Cita, Citas
+- `/patient/citas/[id]/factura` is linked but **does not exist** (404)
+
+### Roles & Permissions
+
+- `GET /roles` / `POST /roles` / `PUT /roles/{id}` / `DELETE /roles/{id}` — CRUD
+- `PUT /roles/{id}/permissions` — sync role permissions
+- `GET /permissions` / `POST /permissions` / `PUT /permissions/{id}` — CRUD
+- `GET /users` / `GET /users/{id}/permissions` / `PUT /users/{id}/roles` — user-role assignment
 
 ## Framework & style
 
-- Next.js 16.2.10 + React 19.2.4, TypeScript strict mode
-- Tailwind CSS v4 (`@import "tailwindcss"` not `@tailwind` directives) + `@tailwindcss/postcss`
-- Brand CSS vars: `--navy: #013253`, `--sky: #00AFF1`, `--green: #7CB91D`, `--red: #FE0000`
-- Semaforo classes: `.semaforo-verde`, `.semaforo-amarillo`, `.semaforo-rojo`
-- Row state classes: `.row-pagado`, `.row-cancelado`
+- Next.js 16.2.10 + React 19.2.4, TypeScript strict.
+- Tailwind v4: `@import "tailwindcss"` (not `@tailwind`), **no `tailwind.config`** — all customization via CSS vars in `globals.css`.
+- Brand: `--navy: #013253`, `--sky: #00AFF1`, `--green: #7CB91D`, `--red: #FE0000`. Inline arbitrary values (`text-[#013253]`) used instead of CSS var references.
+- `cn()` is `classes.filter(Boolean).join(' ')` — not `clsx`/`tailwind-merge`.
+- Photo URLs: `NEXT_PUBLIC_API_URL.replace('/api', '')` + path.
+- No loading states — all CRUD pages return `null` while loading, no error boundaries.
+- `company_id` is auto-assigned by the backend from the authenticated user — do **not** send it in requests.

@@ -7,6 +7,9 @@ export interface AuthUser {
   type_user: 'Administrator' | 'Dentist' | 'Patient';
   photo: string;
   state: string;
+  company_id?: number;
+  roles?: { id: number; name: string }[];
+  permissions?: string[];
 }
 
 export function getUser(): AuthUser | null {
