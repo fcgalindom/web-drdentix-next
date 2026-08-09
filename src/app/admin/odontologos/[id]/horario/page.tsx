@@ -3,8 +3,11 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import AlertGeneric from '@/components/web/AlertGeneric';
 import Button from '@/components/ui/Button';
-import toast from 'react-hot-toast';
 
 const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 const hours = Array.from({ length: 41 }, (_, i) => {
@@ -24,7 +27,8 @@ export default function HorarioPage() {
   const params = useParams();
   const dentistId = Number(params.id);
   const [slots, setSlots] = useState<Slot[]>(defaultSlots());
-  const [saving, setSaving] = useState(false);
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   async function load() {
     try {
@@ -36,7 +40,7 @@ export default function HorarioPage() {
         });
         setSlots(filled);
       }
-    } catch { toast.error('Error al cargar horario'); }
+    } catch { showAlert('Error al cargar horario', 'error'); }
   }
 
   useEffect(() => { if (!loading) load(); }, [loading]);
@@ -46,15 +50,16 @@ export default function HorarioPage() {
   }
 
   async function save() {
-    setSaving(true);
-    try {
-      await api.post('/admin/dentists/schedule', { dentist_id: dentistId, schedules: slots });
-      toast.success('Horario guardado');
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+    const hasAttend = slots.some(s => s.attend);
+    if (!hasAttend) { showAlert('Selecciona al menos un día de atención', 'warning'); return; }
+    for (const s of slots) {
+      if (s.attend && s.hour_start === s.hour_end) { showAlert(`El ${DAYS[s.day-1]} tiene hora inicio igual a hora fin`, 'warning'); return; }
+      if (s.attend && s.break && s.break_start === s.break_end) { showAlert(`El descanso del ${DAYS[s.day-1]} tiene inicio igual a fin`, 'warning'); return; }
+    }
+    await execute(signal => api.post('/admin/dentists/schedule', { dentist_id: dentistId, schedules: slots }, { signal }), 'Horario guardado');
   }
 
-  if (loading) return null;
+  if (loading) return <SpinnerLoad />;
 
   return (
     <div>
@@ -103,6 +108,8 @@ export default function HorarioPage() {
           </tbody>
         </table>
       </div>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

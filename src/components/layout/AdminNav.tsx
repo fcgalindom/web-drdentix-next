@@ -5,10 +5,14 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Calendar, UserPlus, Search } from 'lucide-react';
 import { clearSession, getUser } from '@/lib/auth';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { verifyDocSchema, patientSchema, extractErrors } from '@/lib/schemas';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import ErrorMessage from '@/components/web/ErrorMessage';
 
 export default function AdminNav() {
   const router = useRouter();
@@ -18,7 +22,10 @@ export default function AdminNav() {
   const [showVerify, setShowVerify] = useState(false);
   const [verifyDoc, setVerifyDoc] = useState('');
   const [form, setForm] = useState({ name: '', document: '', telephone: '', birth: '', city: '', email: '' });
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { execute, isLoading } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   async function logout() {
     await api.post('/auth/logout').catch(() => {});
@@ -27,30 +34,32 @@ export default function AdminNav() {
   }
 
   async function handleCreatePatient() {
-    setLoading(true);
-    try {
-      const { data } = await api.post('/admin/patients', form);
-      toast.success('Paciente creado');
+    const r = patientSchema.safeParse(form);
+    if (!r.success) { setErrors(extractErrors(r.error)); return; }
+    setErrors({});
+    const result = await execute(signal => api.post('/admin/patients', form, { signal }));
+    if (result.response) {
       setShowCreate(false);
-      router.push(`/admin/citas?patient_id=${data.id}`);
-    } catch (e: any) {
-      toast.error(e.response?.data?.message ?? 'Error al crear paciente');
-    } finally { setLoading(false); }
+      router.push(`/admin/citas?patient_id=${result.response.data.id}`);
+    }
   }
 
   async function handleVerify() {
-    if (!verifyDoc) return;
-    try {
-      const { data } = await api.post('/admin/patients/find-by-document', { document: verifyDoc });
+    const r = verifyDocSchema.safeParse({ document: verifyDoc });
+    if (!r.success) { setErrors(extractErrors(r.error)); return; }
+    setErrors({});
+    const result = await execute(signal => api.post('/admin/patients/find-by-document', { document: verifyDoc }, { signal }));
+    if (result.response) {
+      const data = result.response.data;
       if (data.status === 200) {
         setShowVerify(false);
         router.push(`/admin/citas?patient_id=${data.id}`);
       } else {
-        toast('Paciente no encontrado. Crea uno primero.', { icon: '⚠️' });
+        showAlert('Paciente no encontrado. Crea uno primero.', 'warning');
         setShowVerify(false);
         setShowCreate(true);
       }
-    } catch { toast.error('Error al verificar'); }
+    }
   }
 
   return (
@@ -87,24 +96,30 @@ export default function AdminNav() {
       {/* Verificar cita modal */}
       <Modal open={showVerify} onClose={() => setShowVerify(false)} title="Verificar citas" size="sm">
         <div className="flex flex-col gap-4">
-          <Input label="Número de cédula" value={verifyDoc} onChange={(e) => setVerifyDoc(e.target.value)}
+          <Input label="Número de cédula" value={verifyDoc} onChange={(e) => { setVerifyDoc(e.target.value); setErrors({}); }}
             onKeyDown={(e) => e.key === 'Enter' && handleVerify()} placeholder="Ej: 1234567890" />
+          <ErrorMessage message={errors.document} />
           <Button onClick={handleVerify}>Verificar</Button>
         </div>
       </Modal>
 
       {/* Crear paciente modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Crear paciente" size="sm">
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setErrors({}); }} title="Crear paciente" size="sm">
         <div className="grid grid-cols-1 gap-3">
           <Input label="Nombre completo *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <ErrorMessage message={errors.name} />
           <Input label="Documento *" value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} />
+          <ErrorMessage message={errors.document} />
           <Input label="Teléfono *" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} />
+          <ErrorMessage message={errors.telephone} />
           <Input label="Fecha de nacimiento" type="date" value={form.birth} onChange={(e) => setForm({ ...form, birth: e.target.value })} />
           <Input label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
           <Input label="Email (opcional)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <Button onClick={handleCreatePatient} loading={loading}>Guardar</Button>
+          <ErrorMessage message={errors.email} />
+          <Button onClick={handleCreatePatient} loading={isLoading}>Guardar</Button>
         </div>
       </Modal>
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </>
   );
 }

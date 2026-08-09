@@ -1,7 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { permissionSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useDialogHandler } from '@/hooks/useDialogHandler';
+import { useAlert } from '@/hooks/useAlert';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import ErrorMessage from '@/components/web/ErrorMessage';
+import AlertGeneric from '@/components/web/AlertGeneric';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
@@ -12,10 +19,12 @@ interface Permission { id: number; name: string; guard_name: string; }
 
 export default function PermisosPage() {
   const { loading } = useAuth('Administrator');
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { open, title, handleOpen, handleClose } = useDialogHandler({ create: 'Nuevo permiso', edit: 'Editar permiso' });
+  const { alert, showAlert, hideAlert } = useAlert();
   const [items, setItems] = useState<Permission[]>([]);
-  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ id: 0, name: '' });
-  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function load() {
     try {
@@ -27,43 +36,52 @@ export default function PermisosPage() {
   useEffect(() => { if (!loading) load(); }, [loading]);
 
   async function save() {
-    setSaving(true);
-    try {
-      const { id, name } = form;
+    const r = permissionSchema.safeParse(form);
+    if (!r.success) { setErrors(extractErrors(r.error)); return; }
+    setErrors({});
+
+    const { id, name } = form;
+    const { response, message, alertSeverity } = await execute(async (_signal) => {
       if (id) {
-        await api.put(`/permissions/${id}`, { name });
+        return await api.put(`/permissions/${id}`, { name });
       } else {
-        await api.post('/permissions', { name, guard_name: 'web' });
+        return await api.post('/permissions', { name, guard_name: 'web' });
       }
-      toast.success(id ? 'Permiso actualizado' : 'Permiso creado');
-      setOpen(false);
+    }, id ? 'Permiso actualizado' : 'Permiso creado');
+
+    if (response) {
+      showAlert(message, alertSeverity);
+      handleClose();
       load();
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+    }
   }
 
-  if (loading) return null;
+  if (loading) return <SpinnerLoad />;
 
   return (
     <div>
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#013253]">Permisos</h1>
-        <Button onClick={() => { setForm({ id: 0, name: '' }); setOpen(true); }}><Plus size={16} /> Crear</Button>
+        <Button onClick={() => { setForm({ id: 0, name: '' }); setErrors({}); handleOpen(); }}>
+          <Plus size={16} /> Crear
+        </Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-[#00AFF1] text-white">
-            <tr>{['Nombre', 'Acciones'].map(h => (
-              <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
-            ))}</tr>
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+              <th className="px-4 py-3 text-left font-semibold">Acciones</th>
+            </tr>
           </thead>
           <tbody>
             {items.map((p) => (
               <tr key={p.id} className="border-t hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium font-mono text-xs">{p.name}</td>
                 <td className="px-4 py-3 flex gap-2">
-                  <button onClick={() => { setForm({ id: p.id, name: p.name }); setOpen(true); }}
+                  <button onClick={() => { setForm({ id: p.id, name: p.name }); setErrors({}); handleOpen(p.id); }}
                     className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                 </td>
               </tr>
@@ -72,9 +90,10 @@ export default function PermisosPage() {
         </table>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={form.id ? 'Editar permiso' : 'Nuevo permiso'} size="sm">
+      <Modal open={open} onClose={handleClose} title={title} size="sm">
         <div className="grid gap-3">
           <Input label="Nombre del permiso *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="ej: citas.crear" />
+          <ErrorMessage message={errors.name} />
           <Button onClick={save} loading={saving}>Guardar</Button>
         </div>
       </Modal>

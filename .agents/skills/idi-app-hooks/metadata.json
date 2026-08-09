@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "organization": "IDIME S.A.",
+  "date": "2025-08-05",
+  "abstract": "Catálogo de hooks reutilizables del proyecto idi_app (Expo/React Native). Contiene 6 hooks: usePaginator, useAsyncFormHandler, useDialogHandler, useAuth, useAlert, useStatusToggle. Cada hook incluye su firma completa, tipo de retorno, dependencias y ejemplo de uso."
+}

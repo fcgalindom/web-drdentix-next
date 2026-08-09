@@ -2,11 +2,16 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import Paginator from '@/components/ui/Paginator';
+import Paginator from '@/components/web/Paginator';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import ErrorMessage from '@/components/web/ErrorMessage';
 import toast from 'react-hot-toast';
 import { parseCOP, formatDate } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, MessageCircle, Phone, Trash2, Plus, FileText } from 'lucide-react';
@@ -32,8 +37,10 @@ export default function CitasAdminPage() {
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [payModal, setPayModal] = useState(false);
   const [payments, setPayments] = useState([{ price: '', procedure_id: '' }]);
-  const [saving, setSaving] = useState(false);
   const [dentists, setDentists] = useState<{ id: number; name: string }[]>([]);
+
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   async function load(p = 1) {
     const hasDateFilter = filters.date_from || filters.date_to;
@@ -79,18 +86,20 @@ export default function CitasAdminPage() {
 
   async function changeState(state: string) {
     if (!selected) return;
-    setSaving(true);
-    try {
-      const body: any = { id: selected.id, state };
-      if (state === 'Asistio' || state === 'Pagado') {
-        body.payments = payments.filter(p => p.price && p.procedure_id).map(p => ({ price: Number(p.price), procedure_id: Number(p.procedure_id) }));
-      }
-      await api.post('/admin/appointments/state', body);
-      toast.success('Estado actualizado');
+    if (state === 'Asistio' || state === 'Pagado') {
+      const valid = payments.filter(p => p.price && p.procedure_id);
+      if (valid.length === 0) { showAlert('Agrega al menos un ítem de factura con precio y procedimiento', 'warning'); return; }
+    }
+    const body: any = { id: selected.id, state };
+    if (state === 'Asistio' || state === 'Pagado') {
+      body.payments = payments.filter(p => p.price && p.procedure_id).map(p => ({ price: Number(p.price), procedure_id: Number(p.procedure_id) }));
+    }
+    await execute(async (signal) => {
+      const response = await api.post('/admin/appointments/state', body, { signal });
       setPayModal(false); setSelected(null);
       load(page);
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+      return response;
+    }, 'Estado actualizado');
   }
 
   const dateLabel = () => {
@@ -105,7 +114,7 @@ export default function CitasAdminPage() {
     return '';
   };
 
-  if (loading) return null;
+  if (loading) return <SpinnerLoad />;
 
   return (
     <div>
@@ -198,7 +207,7 @@ export default function CitasAdminPage() {
             )}
           </tbody>
         </table>
-        {meta && <div className="px-4"><Paginator meta={meta} onChange={(p) => { setPage(p); load(p); }} /></div>}
+        {meta && <Paginator paginator={meta} page={page} setPage={(p) => { setPage(p); load(p); }} />}
       </div>
 
       {/* Payment modal */}
@@ -234,6 +243,8 @@ export default function CitasAdminPage() {
           </div>
         )}
       </Modal>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

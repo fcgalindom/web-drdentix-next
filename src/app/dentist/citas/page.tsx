@@ -1,13 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { paymentSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Paginator from '@/components/ui/Paginator';
-import toast from 'react-hot-toast';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import ErrorMessage from '@/components/web/ErrorMessage';
 import { parseCOP, formatDate } from '@/lib/utils';
 
 interface Appointment {
@@ -25,7 +30,9 @@ export default function DentistCitasPage() {
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [payModal, setPayModal] = useState(false);
   const [price, setPrice] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   async function load() {
     const params: any = {};
@@ -39,21 +46,24 @@ export default function DentistCitasPage() {
 
   async function changeState(state: string) {
     if (!selected) return;
-    setSaving(true);
-    try {
-      const body: any = { id: selected.id, state };
-      if (state === 'Asistio' && price) {
-        body.payments = [{ price: Number(price), procedure_id: selected.dentist_procedure?.procedure?.id }];
-      }
-      await api.post('/dentist/appointments/state', body);
-      toast.success('Estado actualizado');
+    if (state === 'Asistio') {
+      const r = paymentSchema.safeParse({ price });
+      if (!r.success) { setErrors(extractErrors(r.error)); return; }
+      setErrors({});
+    }
+    const body: any = { id: selected.id, state };
+    if (state === 'Asistio' && price) {
+      body.payments = [{ price: Number(price), procedure_id: selected.dentist_procedure?.procedure?.id }];
+    }
+    await execute(async (signal) => {
+      const response = await api.post('/dentist/appointments/state', body, { signal });
       setPayModal(false); setSelected(null); setPrice('');
       load();
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+      return response;
+    }, 'Estado actualizado');
   }
 
-  if (loading) return null;
+  if (loading) return <SpinnerLoad />;
 
   return (
     <div>
@@ -86,7 +96,7 @@ export default function DentistCitasPage() {
             {(a.state === 'Activo' || a.state === 'Recordado') && (
               <div className="flex gap-2 mt-4">
                 <Button size="sm" variant="danger" onClick={() => { setSelected(a); changeState('No asistio'); }}>No asistió</Button>
-                <Button size="sm" onClick={() => { setSelected(a); setPayModal(true); }}>Asistió / Pagar</Button>
+                <Button size="sm" onClick={() => { setSelected(a); setPayModal(true); setErrors({}); }}>Asistió / Pagar</Button>
               </div>
             )}
           </div>
@@ -101,10 +111,12 @@ export default function DentistCitasPage() {
       <Modal open={payModal} onClose={() => setPayModal(false)} title="Registrar pago" size="sm">
         <div className="space-y-4">
           {selected && <p className="text-sm text-gray-600">Cita de <strong>{selected.patient?.name}</strong> — {selected.dentist_procedure?.procedure?.name}</p>}
-          <Input label="Precio *" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ej: 120000" />
+          <Input label="Precio *" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ej: 120000" error={errors.price} />
           <Button onClick={() => changeState('Asistio')} loading={saving} className="w-full justify-center">Registrar pago</Button>
         </div>
       </Modal>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

@@ -2,8 +2,11 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import AlertGeneric from '@/components/web/AlertGeneric';
 import Button from '@/components/ui/Button';
-import toast from 'react-hot-toast';
 
 const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 const hours = Array.from({ length: 41 }, (_, i) => {
@@ -22,7 +25,8 @@ export default function DentistHorarioPage() {
   const { user, loading } = useAuth('Dentist');
   const [slots, setSlots] = useState<Slot[]>(defaultSlots());
   const [dentistId, setDentistId] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     if (!loading) {
@@ -44,16 +48,17 @@ export default function DentistHorarioPage() {
   }
 
   async function save() {
-    if (!dentistId) { toast.error('ID de odontólogo no encontrado'); return; }
-    setSaving(true);
-    try {
-      await api.post('/dentist/schedule', { dentist_id: dentistId, schedules: slots });
-      toast.success('Horario guardado');
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+    if (!dentistId) { showAlert('ID de odontólogo no encontrado', 'error'); return; }
+    const hasAttend = slots.some(s => s.attend);
+    if (!hasAttend) { showAlert('Selecciona al menos un día de atención', 'warning'); return; }
+    for (const s of slots) {
+      if (s.attend && s.hour_start === s.hour_end) { showAlert(`El ${DAYS[s.day-1]} tiene hora inicio igual a hora fin`, 'warning'); return; }
+      if (s.attend && s.break && s.break_start === s.break_end) { showAlert(`El descanso del ${DAYS[s.day-1]} tiene inicio igual a fin`, 'warning'); return; }
+    }
+    await execute(signal => api.post('/dentist/schedule', { dentist_id: dentistId, schedules: slots }, { signal }), 'Horario guardado');
   }
 
-  if (loading) return null;
+  if (loading) return <SpinnerLoad />;
 
   return (
     <div>
@@ -102,6 +107,8 @@ export default function DentistHorarioPage() {
           </tbody>
         </table>
       </div>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

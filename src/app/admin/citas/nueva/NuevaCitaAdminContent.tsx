@@ -1,11 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { appointmentSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import toast from 'react-hot-toast';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import ErrorMessage from '@/components/web/ErrorMessage';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Slot { hour_start: string; hour_end: string; }
@@ -20,7 +25,9 @@ export default function NuevaCitaAdminContent() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [showDentistModal, setShowDentistModal] = useState(false);
   const [showSlotsModal, setShowSlotsModal] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     if (!loading) {
@@ -54,16 +61,16 @@ export default function NuevaCitaAdminContent() {
   }
 
   async function book() {
-    setSaving(true);
-    try {
-      await api.post('/admin/appointments', { ...form, patient_id: Number(form.patient_id), branch_id: Number(form.branch_id), dentist_procedure_id: Number(form.dentist_procedure_id) });
-      toast.success('Cita agendada');
+    const r = appointmentSchema.safeParse(form);
+    if (!r.success) { setErrors(extractErrors(r.error)); return; }
+    setErrors({});
+    const result = await execute(signal => api.post('/admin/appointments', { ...form, patient_id: Number(form.patient_id), branch_id: Number(form.branch_id), dentist_procedure_id: Number(form.dentist_procedure_id) }, { signal }), 'Cita agendada');
+    if (result.response) {
       router.push('/admin/citas');
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+    }
   }
 
-  if (loading || !formData) return null;
+  if (loading || !formData) return <SpinnerLoad />;
 
   return (
     <div className="max-w-2xl">
@@ -77,6 +84,7 @@ export default function NuevaCitaAdminContent() {
             <option value="">Seleccionar paciente</option>
             {formData.patients?.map((p: any) => <option key={p.id} value={p.id}>{p.text}</option>)}
           </select>
+          <ErrorMessage message={errors.patient_id} />
         </div>
 
         <div className="flex flex-col gap-1">
@@ -86,11 +94,12 @@ export default function NuevaCitaAdminContent() {
             <option value="">Seleccionar procedimiento</option>
             {formData.procedures?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          <ErrorMessage message={errors.procedure_id} />
         </div>
 
         {form.dentist_procedure_id && (
           <Input label="Fecha *" type="date" value={form.day} min={formData.min_date}
-            onChange={(e) => onDateChange(e.target.value)} />
+            onChange={(e) => onDateChange(e.target.value)} error={errors.day} />
         )}
 
         {form.hour && <Input label="Hora seleccionada" value={form.hour} disabled />}
@@ -102,6 +111,7 @@ export default function NuevaCitaAdminContent() {
             <option value="">Seleccionar sede</option>
             {formData.branches?.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
+          <ErrorMessage message={errors.branch_id} />
         </div>
 
         <Button onClick={book} loading={saving} disabled={!form.patient_id || !form.dentist_procedure_id || !form.day || !form.hour || !form.branch_id}>
@@ -134,6 +144,8 @@ export default function NuevaCitaAdminContent() {
           ))}
         </div>
       </Modal>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

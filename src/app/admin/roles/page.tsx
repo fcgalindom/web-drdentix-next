@@ -1,11 +1,19 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import api from '@/lib/api';
+import { roleSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
+import { usePaginator } from '@/hooks/usePaginator';
+import { useDialogHandler } from '@/hooks/useDialogHandler';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useAlert } from '@/hooks/useAlert';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import Paginator from '@/components/ui/Paginator';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import ErrorMessage from '@/components/web/ErrorMessage';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import Paginator from '@/components/web/Paginator';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -13,57 +21,71 @@ import { useRouter } from 'next/navigation';
 interface Role { id: number; name: string; guard_name: string; permissions_count?: number; }
 
 export default function RolesPage() {
-  const { loading } = useAuth('Administrator');
+  const { loading: authLoading } = useAuth('Administrator');
   const router = useRouter();
-  const [items, setItems] = useState<Role[]>([]);
-  const [meta, setMeta] = useState<any>(null);
-  const [page, setPage] = useState(1);
-  const [open, setOpen] = useState(false);
+
+  const fetchRoles = useCallback(async (params: { page: number }) => {
+    const { data } = await api.get(`/roles?page=${params.page}`);
+    return data;
+  }, []);
+
+  const { items, paginator, page, setPage, loading, refresh } = usePaginator<Role, {}>(fetchRoles, {});
+  const { open, title, handleOpen, handleClose } = useDialogHandler({ create: 'Nuevo rol', edit: 'Editar rol' });
+  const { execute, isLoading: saving } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
+
   const [form, setForm] = useState({ id: 0, name: '' });
-  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  async function load(p = 1) {
-    try {
-      const { data } = await api.get(`/roles?page=${p}`);
-      setItems(data.data);
-      setMeta(data.meta);
-    } catch { toast.error('Error al cargar roles'); }
-  }
+  const openCreate = () => {
+    setForm({ id: 0, name: '' });
+    setErrors({});
+    handleOpen();
+  };
 
-  useEffect(() => { if (!loading) load(); }, [loading]);
+  const openEdit = (r: Role) => {
+    setForm({ id: r.id, name: r.name });
+    setErrors({});
+    handleOpen(r.id);
+  };
 
-  async function save() {
-    setSaving(true);
-    try {
-      const { id, name } = form;
-      if (id) {
-        await api.put(`/roles/${id}`, { name });
-      } else {
-        await api.post('/roles', { name, guard_name: 'web' });
-      }
-      toast.success(id ? 'Rol actualizado' : 'Rol creado');
-      setOpen(false);
-      load(page);
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
-  }
+  const save = async () => {
+    const r = roleSchema.safeParse(form);
+    if (!r.success) { setErrors(extractErrors(r.error)); return; }
+    setErrors({});
 
-  async function remove(id: number, name: string) {
+    const { id, name } = form;
+    const { alertSeverity: severity, message } = await execute(
+      (signal) => id > 0
+        ? api.put(`/roles/${id}`, { name }, { signal })
+        : api.post('/roles', { name, guard_name: 'web' }, { signal }),
+      id > 0 ? 'Rol actualizado' : 'Rol creado'
+    );
+
+    if (severity === 'success') {
+      showAlert(message, 'success');
+      handleClose();
+      refresh();
+    }
+  };
+
+  const remove = async (id: number, name: string) => {
     if (!confirm(`¿Eliminar el rol "${name}"?`)) return;
     try {
       await api.delete(`/roles/${id}`);
       toast.success('Rol eliminado');
-      load(page);
+      refresh();
     } catch { toast.error('Error al eliminar'); }
-  }
+  };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><span className="text-gray-400">Cargando...</span></div>;
+  if (authLoading) return null;
 
   return (
     <div>
+      {loading && <SpinnerLoad />}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#013253]">Roles</h1>
-        <Button onClick={() => { setForm({ id: 0, name: '' }); setOpen(true); }}><Plus size={16} /> Crear</Button>
+        <Button onClick={openCreate}><Plus size={16} /> Crear</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -83,22 +105,25 @@ export default function RolesPage() {
                     className="p-1.5 text-[#7CB91D] hover:bg-green-50 rounded" title="Asignar permisos">
                     <Shield size={15} />
                   </button>
-                  <button onClick={() => { setForm({ id: r.id, name: r.name }); setOpen(true); }}
+                  <button onClick={() => openEdit(r)}
                     className="p-1.5 text-[#013253] hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {meta && <div className="px-4"><Paginator meta={meta} onChange={(p) => { setPage(p); load(p); }} /></div>}
+        <Paginator paginator={paginator} page={page} setPage={setPage} />
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={form.id ? 'Editar rol' : 'Nuevo rol'} size="sm">
+      <Modal open={open} onClose={handleClose} title={title} size="sm">
         <div className="grid gap-3">
-          <Input label="Nombre del rol *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input label="Nombre del rol *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
+          <ErrorMessage message={errors.name} />
           <Button onClick={save} loading={saving}>Guardar</Button>
         </div>
       </Modal>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

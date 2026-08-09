@@ -1,37 +1,44 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { usePaginator } from '@/hooks/usePaginator';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import useAlert from '@/hooks/useAlert';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import Paginator from '@/components/web/Paginator';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import Paginator from '@/components/ui/Paginator';
-import toast from 'react-hot-toast';
 import { Shield, Check, X } from 'lucide-react';
+import type { PaginatedResponse } from '@/interfaces/index';
 import { cn } from '@/lib/utils';
 
 interface User { id: number; name: string; email: string; type_user: string; state: string; roles?: { id: number; name: string }[]; }
 interface Role { id: number; name: string; }
 
+const fetchUsers = async ({ page }: { page: number }): Promise<PaginatedResponse<User>> => {
+  const { data } = await api.get(`/users?page=${page}`);
+  return {
+    data: data.data,
+    current_page: data.meta.current_page,
+    last_page: data.meta.last_page,
+    total: data.meta.total,
+    per_page: data.meta.per_page,
+    from: data.meta.from,
+    to: data.meta.to,
+  };
+};
+
 export default function UsuariosPage() {
-  const { loading } = useAuth('Administrator');
-  const [items, setItems] = useState<User[]>([]);
-  const [meta, setMeta] = useState<any>(null);
-  const [page, setPage] = useState(1);
+  const { loading: authLoading } = useAuth('Administrator');
+  const { items, paginator, page, setPage, refresh } = usePaginator(fetchUsers, {});
+  const { isLoading: saving, execute } = useAsyncFormHandler();
+  const { alert, showAlert, hideAlert } = useAlert();
   const [rolesModal, setRolesModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [userRoles, setUserRoles] = useState<number[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  async function load(p = 1) {
-    try {
-      const { data } = await api.get(`/users?page=${p}`);
-      setItems(data.data);
-      setMeta(data.meta);
-    } catch { toast.error('Error al cargar usuarios'); }
-  }
-
-  useEffect(() => { if (!loading) load(); }, [loading]);
 
   async function openRolesModal(u: User) {
     setSelectedUser(u);
@@ -43,26 +50,27 @@ export default function UsuariosPage() {
       setAllRoles(rolesRes.data.data ?? rolesRes.data);
       setUserRoles(userRolesRes.data.roles?.map((r: any) => r.id ?? r) ?? []);
       setRolesModal(true);
-    } catch { toast.error('Error al cargar datos'); }
+    } catch { showAlert('Error al cargar datos', 'error'); }
   }
 
   function toggleRole(roleId: number) {
     setUserRoles(prev => prev.includes(roleId) ? prev.filter(x => x !== roleId) : [...prev, roleId]);
   }
 
-  async function assignRoles() {
+  async function saveRoles() {
     if (!selectedUser) return;
-    setSaving(true);
-    try {
-      await api.put(`/users/${selectedUser.id}/roles`, { roles: userRoles });
-      toast.success('Roles actualizados');
+    const result = await execute(
+      () => api.put(`/users/${selectedUser.id}/roles`, { roles: userRoles }),
+      'Roles actualizados'
+    );
+    if (result.response) {
+      showAlert('Roles actualizados', 'success');
       setRolesModal(false);
-      load(page);
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+      refresh();
+    }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><span className="text-gray-400">Cargando...</span></div>;
+  if (authLoading) return <SpinnerLoad />;
 
   return (
     <div>
@@ -102,7 +110,7 @@ export default function UsuariosPage() {
             ))}
           </tbody>
         </table>
-        {meta && <div className="px-4"><Paginator meta={meta} onChange={(p) => { setPage(p); load(p); }} /></div>}
+        <Paginator paginator={paginator} page={page} setPage={setPage} />
       </div>
 
       <Modal open={rolesModal} onClose={() => setRolesModal(false)} title={`Roles: ${selectedUser?.name ?? ''}`} size="sm">
@@ -121,9 +129,11 @@ export default function UsuariosPage() {
             );
           })}
           {allRoles.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No hay roles disponibles</p>}
-          <Button onClick={assignRoles} loading={saving} className="w-full justify-center mt-2">Guardar roles</Button>
+          <Button onClick={saveRoles} loading={saving} className="w-full justify-center mt-2">Guardar roles</Button>
         </div>
       </Modal>
+
+      <AlertGeneric severity={alert.severity} message={alert.message} open={alert.open} onClose={hideAlert} />
     </div>
   );
 }

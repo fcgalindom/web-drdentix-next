@@ -1,15 +1,27 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import Paginator from '@/components/ui/Paginator';
 import Toggle from '@/components/ui/Toggle';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Eye, Download, Users, Calendar, Activity, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { patientSchema, extractErrors } from '@/lib/schemas';
+import { usePaginator } from '@/hooks/usePaginator';
+import { useDialogHandler } from '@/hooks/useDialogHandler';
+import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
+import { useStatusToggle } from '@/hooks/useStatusToggle';
+import { useAlert } from '@/hooks/useAlert';
+import SpinnerLoad from '@/components/web/SpinnerLoad';
+import ErrorMessage from '@/components/web/ErrorMessage';
+import AlertGeneric from '@/components/web/AlertGeneric';
+import Paginator from '@/components/web/Paginator';
+import type { PaginatedResponse } from '@/interfaces/index';
+import type { AxiosResponse } from 'axios';
+import type { ChangeEvent } from 'react';
 
 interface Patient { id: number; name: string; city: string; telephone: string; user: { document: string; email: string; state: string }; }
 
@@ -38,62 +50,118 @@ function Statebadge({ state }: { state: string }) {
   );
 }
 
+type PatientFilters = { name: string; document: string; city: string };
+
 export default function PacientesPage() {
-  const { loading } = useAuth('Administrator');
+  const { loading: authLoading } = useAuth('Administrator');
   const router = useRouter();
-  const [items, setItems] = useState<Patient[]>([]);
-  const [meta, setMeta] = useState<any>(null);
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({ name: '', document: '', city: '' });
-  const [open, setOpen] = useState(false);
+
   const [form, setForm] = useState(empty);
-  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  async function load(p = 1) {
-    const params = new URLSearchParams({ page: String(p), ...filters });
-    try {
-      const { data } = await api.get(`/admin/patients?${params}`);
-      setItems(data.data);
-      setMeta(data.meta);
-    } catch { toast.error('Error al cargar pacientes'); }
-  }
+  const { alert, showAlert, hideAlert } = useAlert();
+  const { isLoading: saving, execute } = useAsyncFormHandler();
 
-  useEffect(() => { if (!loading) load(page); }, [loading]);
+  const {
+    items, paginator, filters, page, setPage, loading,
+    refresh, handleChange, handleFilter, updateLocalItem, setItems,
+  } = usePaginator<Patient, PatientFilters>(
+    useCallback(async (params) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      if (params.name) searchParams.set('name', params.name);
+      if (params.document) searchParams.set('document', params.document);
+      if (params.city) searchParams.set('city', params.city);
+      const { data } = await api.get(`/admin/patients?${searchParams}`);
+      return data as PaginatedResponse<Patient>;
+    }, []),
+    { name: '', document: '', city: '' },
+  );
 
-  function openEdit(p: Patient) {
-    setForm({ id: p.id, name: p.name, document: p.user.document, telephone: p.telephone, birth: '', city: p.city ?? '', email: p.user.email ?? '' });
-    setOpen(true);
-  }
+  const { open, title, handleOpen, handleClose } = useDialogHandler({
+    create: 'Nuevo paciente',
+    edit: 'Editar paciente',
+  });
+
+  const toggleAdapter = useCallback(async (newValue: boolean, itemId: number) => {
+    return api.post('/admin/patients/deactivate', {
+      id: itemId,
+      state: newValue ? 'Activo' : 'Inactivo',
+    }) as Promise<AxiosResponse<Patient>>;
+  }, []);
+
+  const { handleChangeActive } = useStatusToggle<Patient>({
+    setItems,
+    apiCall: toggleAdapter,
+    refresh,
+  });
 
   async function save() {
-    setSaving(true);
-    try {
-      const { id, ...rest } = form;
+    const r = patientSchema.safeParse(form);
+    if (!r.success) { setErrors(extractErrors(r.error)); return; }
+    setErrors({});
+
+    const { response } = await execute(async (signal) => {
+      const { id: pid, ...rest } = form;
       const payload: any = { ...rest };
-      if (id) payload.id = id;
+      if (pid) payload.id = pid;
       const { data } = await api.post('/admin/patients', payload);
-      toast.success(form.id ? 'Paciente actualizado' : 'Paciente creado');
-      setOpen(false);
-      if (!form.id) router.push(`/admin/citas?patient_id=${data.id}`);
-      else load(page);
-    } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
-    finally { setSaving(false); }
+      return data;
+    });
+
+    if (response) {
+      showAlert(form.id ? 'Paciente actualizado' : 'Paciente creado', 'success');
+      handleClose();
+      if (!form.id) router.push(`/admin/citas?patient_id=${(response as any).id}`);
+      else refresh();
+    }
   }
 
-  async function toggleState(p: Patient) {
-    try {
-      await api.post('/admin/patients/deactivate', { id: p.id, state: p.user.state === 'Activo' ? 'Inactivo' : 'Activo' });
-      load(page);
-    } catch { toast.error('Error'); }
+  function openCreate() {
+    setForm(empty);
+    setErrors({});
+    handleOpen();
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><span className="text-gray-400">Cargando...</span></div>;
+  function openEditItem(p: Patient) {
+    setForm({
+      id: p.id,
+      name: p.name,
+      document: p.user.document,
+      telephone: p.telephone,
+      birth: '',
+      city: p.city ?? '',
+      email: p.user.email ?? '',
+    });
+    setErrors({});
+    handleOpen(p.id);
+  }
 
-  const total = meta?.total ?? items.length;
+  function handleTogglePatient(p: Patient) {
+    const newValue = p.user.state !== 'Activo';
+    updateLocalItem(p.id, {
+      user: { ...p.user, state: newValue ? 'Activo' : 'Inactivo' },
+    });
+    const fakeEvent = { target: { checked: newValue } } as ChangeEvent<HTMLInputElement>;
+    handleChangeActive(fakeEvent, p);
+  }
+
+  if (authLoading) return <SpinnerLoad />;
+
+  const total = paginator?.total ?? items.length;
   const activos = items.filter(p => p.user?.state === 'Activo').length;
 
   return (
     <div className="space-y-6">
+      {loading && <SpinnerLoad />}
+
+      <AlertGeneric
+        severity={alert.severity}
+        message={alert.message}
+        open={alert.open}
+        onClose={hideAlert}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -105,7 +173,7 @@ export default function PacientesPage() {
             <Download size={15} /> Exportar
           </button>
           <button
-            onClick={() => { setForm(empty); setOpen(true); }}
+            onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white rounded-lg text-sm font-medium hover:bg-[#012040] transition-colors"
           >
             <Plus size={15} /> Añadir Paciente
@@ -143,10 +211,10 @@ export default function PacientesPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-3 items-end">
-        <Input label="Nombre" value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} />
-        <Input label="Cédula" value={filters.document} onChange={(e) => setFilters({ ...filters, document: e.target.value })} />
-        <Input label="Ciudad" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} />
-        <Button onClick={() => { setPage(1); load(1); }}>Buscar</Button>
+        <Input label="Nombre" name="name" value={filters.name} onChange={handleChange} />
+        <Input label="Cédula" name="document" value={filters.document} onChange={handleChange} />
+        <Input label="Ciudad" name="city" value={filters.city} onChange={handleChange} />
+        <Button onClick={() => handleFilter()}>Buscar</Button>
       </div>
 
       {/* Table */}
@@ -186,13 +254,13 @@ export default function PacientesPage() {
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2">
                     <Statebadge state={p.user?.state} />
-                    <Toggle active={p.user?.state === 'Activo'} onToggle={() => toggleState(p)} />
+                    <Toggle active={p.user?.state === 'Activo'} onToggle={() => handleTogglePatient(p)} />
                   </div>
                 </td>
                 <td className="px-5 py-3 text-gray-500">{p.city ?? '—'}</td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 hover:text-[#0F172A] hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => openEditItem(p)} className="p-1.5 text-gray-400 hover:text-[#0F172A] hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={14} /></button>
                     <button onClick={() => router.push(`/admin/citas?patient_id=${p.id}`)} className="p-1.5 text-gray-400 hover:text-[#0EA5E9] hover:bg-cyan-50 rounded-lg transition-colors"><Eye size={14} /></button>
                   </div>
                 </td>
@@ -205,18 +273,22 @@ export default function PacientesPage() {
           <span className="text-xs text-gray-400">
             Mostrando {items.length} de {total.toLocaleString()} pacientes
           </span>
-          {meta && <Paginator meta={meta} onChange={(p) => { setPage(p); load(p); }} />}
+          <Paginator paginator={paginator} page={page} setPage={setPage} />
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={form.id ? 'Editar paciente' : 'Nuevo paciente'} size="sm">
+      <Modal open={open} onClose={handleClose} title={title} size="sm">
         <div className="grid gap-3">
-          <Input label="Nombre *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input label="Documento *" value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} />
-          <Input label="Teléfono *" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} />
+          <Input label="Nombre *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
+          <ErrorMessage message={errors.name} />
+          <Input label="Documento *" value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} error={errors.document} />
+          <ErrorMessage message={errors.document} />
+          <Input label="Teléfono *" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} error={errors.telephone} />
+          <ErrorMessage message={errors.telephone} />
           <Input label="Fecha de nacimiento" type="date" value={form.birth} onChange={(e) => setForm({ ...form, birth: e.target.value })} />
           <Input label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          <Input label="Email (opcional)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <Input label="Email (opcional)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
+          <ErrorMessage message={errors.email} />
           <Button onClick={save} loading={saving}>Guardar</Button>
         </div>
       </Modal>
