@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogOut, Calendar, UserPlus, Search } from 'lucide-react';
 import { clearSession, getUser } from '@/lib/auth';
-import api from '@/lib/api';
+import { authService, patientService } from '@/services';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -28,7 +28,7 @@ export default function AdminNav() {
   const { alert, showAlert, hideAlert } = useAlert();
 
   async function logout() {
-    await api.post('/auth/logout').catch(() => {});
+    await authService.logout().catch(() => {});
     clearSession();
     router.replace('/login');
   }
@@ -37,7 +37,7 @@ export default function AdminNav() {
     const r = patientSchema.safeParse(form);
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/admin/patients', form, { signal }));
+    const result = await execute(signal => patientService.create(form, signal));
     if (result.response) {
       setShowCreate(false);
       router.push(`/admin/citas?patient_id=${result.response.data.id}`);
@@ -48,7 +48,7 @@ export default function AdminNav() {
     const r = verifyDocSchema.safeParse({ document: verifyDoc });
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/admin/patients/find-by-document', { document: verifyDoc }, { signal }));
+    const result = await execute(() => patientService.findByDocument(verifyDoc));
     if (result.response) {
       const data = result.response.data;
       if (data.status === 200) {

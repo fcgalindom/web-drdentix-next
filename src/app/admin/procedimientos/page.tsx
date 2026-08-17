@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import api from '@/lib/api';
+import { procedureService } from '@/services';
 import { procedureSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
@@ -27,7 +27,7 @@ export default function ProcedimientosPage() {
   const {
     items, setItems, paginator, page, setPage, loading, refresh
   } = usePaginator<Procedure, {}>(
-    (params) => api.get(`/admin/procedures?page=${params.page}`).then(r => r.data),
+    (params) => procedureService.list(params.page).then(r => r.data),
     {}
   );
 
@@ -41,7 +41,7 @@ export default function ProcedimientosPage() {
   const { handleChangeActive } = useStatusToggle<Procedure>({
     setItems,
     apiCall: async (newValue, id) => {
-      return api.post('/admin/procedures/state', { id, state: newValue ? 'Activo' : 'Inactivo' });
+      return procedureService.toggleState(id, newValue ? 'Activo' : 'Inactivo');
     },
     refresh,
     fieldName: 'state' as keyof Procedure,
@@ -71,7 +71,7 @@ export default function ProcedimientosPage() {
         const { id: formId, ...rest } = form;
         const payload: any = { ...rest, duration: Number(form.duration) };
         if (formId) payload.id = formId;
-        return api.post('/admin/procedures', payload);
+        return procedureService.create(payload);
       },
       'Guardado'
     );

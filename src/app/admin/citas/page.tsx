@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { appointmentService, dentistService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
 import { useAlert } from '@/hooks/useAlert';
@@ -47,7 +47,7 @@ export default function CitasAdminPage() {
     const params: any = { page: p, ...filters };
     if (!hasDateFilter) params.advance = dateOffset;
     try {
-      const { data } = await api.get('/admin/appointments', { params });
+      const { data } = await appointmentService.listAdmin(params);
       setItems(data.data?.data ?? []);
       setMeta(data.data?.meta ?? null);
       setIncome(data.income ?? 0);
@@ -56,7 +56,7 @@ export default function CitasAdminPage() {
   }
 
   async function loadDentists() {
-    const { data } = await api.get('/staff/dentists/select');
+    const { data } = await dentistService.getSelect();
     setDentists(data);
   }
 
@@ -67,20 +67,20 @@ export default function CitasAdminPage() {
   async function deleteAppt(id: number) {
     if (!confirm('¿Eliminar esta cita?')) return;
     try {
-      await api.post('/admin/appointments/delete', { id });
+      await appointmentService.deleteAdmin(id);
       toast.success('Cita eliminada'); load(page);
     } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
   }
 
   async function markWhatsapp(appt: Appointment) {
-    const { data } = await api.post('/admin/appointments/whatsapp', { id: appt.id });
+    const { data } = await appointmentService.whatsappAdmin(appt.id);
     const phone = appt.patient.telephone.replace(/\D/g, '');
     window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(data.message)}`, '_blank');
     load(page);
   }
 
   async function markPhone(id: number) {
-    await api.post('/admin/appointments/phone', { id });
+    await appointmentService.phoneAdmin(id);
     toast.success('Llamada registrada'); load(page);
   }
 
@@ -95,7 +95,7 @@ export default function CitasAdminPage() {
       body.payments = payments.filter(p => p.price && p.procedure_id).map(p => ({ price: Number(p.price), procedure_id: Number(p.procedure_id) }));
     }
     await execute(async (signal) => {
-      const response = await api.post('/admin/appointments/state', body, { signal });
+      const response = await appointmentService.changeStateAdmin(body, signal);
       setPayModal(false); setSelected(null);
       load(page);
       return response;

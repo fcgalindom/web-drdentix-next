@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import api from '@/lib/api';
+import { authService, dentistService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -18,7 +18,7 @@ export default function DentistPerfilPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      api.get(`/admin/dentists`).then(({ data }) => {
+      dentistService.list({}).then(({ data }) => {
         const d = data.data?.find((d: any) => d.user?.document === user.document);
         if (d) setDentist(d);
       });
@@ -31,7 +31,7 @@ export default function DentistPerfilPage() {
     try {
       const fd = new FormData();
       fd.append('photo', file);
-      await api.post('/auth/photo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await authService.uploadPhoto(fd);
       toast.success('Foto actualizada');
       setPhotoModal(false);
     } catch { toast.error('Error al subir foto'); }

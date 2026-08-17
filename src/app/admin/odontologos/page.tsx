@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { dentistService, procedureService } from '@/services';
 import { dentistSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
@@ -38,16 +38,15 @@ export default function OdontologosPage() {
     loading: loadingList, refresh, handleChange, handleFilter
   } = usePaginator<Dentist, typeof initialFilters>(
     async (params) => {
-      const qs = new URLSearchParams({ page: String(params.page), name: params.name, document: params.document, city: params.city });
-      const res = await api.get(`/admin/dentists?${qs}`);
-      return res.data as PaginatedResponse<Dentist>;
+      const { data } = await dentistService.list({ page: params.page, name: params.name, document: params.document, city: params.city });
+      return data as PaginatedResponse<Dentist>;
     },
     initialFilters
   );
 
   useEffect(() => {
     if (!loading) {
-      api.get('/staff/procedures/select').then(res => setProcedures(res.data));
+      procedureService.getSelect().then(res => setProcedures(res.data));
     }
   }, [loading]);
 
@@ -92,7 +91,7 @@ export default function OdontologosPage() {
     setItems,
     apiCall: async (newValue, id) => {
       const state = newValue ? 'Activo' : 'Inactivo';
-      return api.post('/admin/dentists/state', { id, state });
+      return dentistService.toggleState(id, state);
     },
     refresh,
     fieldName: 'is_active' as any,
@@ -116,7 +115,7 @@ export default function OdontologosPage() {
       const { id, ...rest } = form;
       const payload: any = { ...rest };
       if (id) payload.id = id;
-      return api.post('/admin/dentists', payload);
+      return dentistService.create(payload, _signal);
     });
 
     if (result.alertSeverity === 'success') {

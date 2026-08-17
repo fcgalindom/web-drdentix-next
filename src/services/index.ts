@@ -1,0 +1,11 @@
+export { authService } from './auth.service';
+export { patientService } from './patient.service';
+export { dentistService } from './dentist.service';
+export { branchService } from './branch.service';
+export { procedureService } from './procedure.service';
+export { productService } from './product.service';
+export { promotionService } from './promotion.service';
+export { roleService } from './role.service';
+export { permissionService } from './permission.service';
+export { appointmentService } from './appointment.service';
+export { userService } from './user.service';

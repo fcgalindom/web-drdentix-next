@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import api from '@/lib/api';
+import { userService, roleService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
@@ -18,7 +18,7 @@ interface User { id: number; name: string; email: string; type_user: string; sta
 interface Role { id: number; name: string; }
 
 const fetchUsers = async ({ page }: { page: number }): Promise<PaginatedResponse<User>> => {
-  const { data } = await api.get(`/users?page=${page}`);
+  const { data } = await userService.list(page);
   return {
     data: data.data,
     current_page: data.meta.current_page,
@@ -44,8 +44,8 @@ export default function UsuariosPage() {
     setSelectedUser(u);
     try {
       const [rolesRes, userRolesRes] = await Promise.all([
-        api.get('/roles'),
-        api.get(`/users/${u.id}/permissions`),
+        roleService.list(1),
+        userService.getPermissions(u.id),
       ]);
       setAllRoles(rolesRes.data.data ?? rolesRes.data);
       setUserRoles(userRolesRes.data.roles?.map((r: any) => r.id ?? r) ?? []);
@@ -60,7 +60,7 @@ export default function UsuariosPage() {
   async function saveRoles() {
     if (!selectedUser) return;
     const result = await execute(
-      () => api.put(`/users/${selectedUser.id}/roles`, { roles: userRoles }),
+      () => userService.assignRoles(selectedUser.id, userRoles),
       'Roles actualizados'
     );
     if (result.response) {

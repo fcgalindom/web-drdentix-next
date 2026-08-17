@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
+import { authService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -37,7 +38,7 @@ export default function PatientPerfilPage() {
     try {
       const fd = new FormData();
       fd.append('photo', file);
-      await api.post('/auth/photo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await authService.uploadPhoto(fd);
       toast.success('Foto actualizada');
       setPhotoModal(false);
       load();

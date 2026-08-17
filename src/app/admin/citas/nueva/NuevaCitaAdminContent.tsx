@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { appointmentService } from '@/services';
 import { appointmentSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
@@ -31,7 +31,7 @@ export default function NuevaCitaAdminContent() {
 
   useEffect(() => {
     if (!loading) {
-      api.post('/staff/appointments/form-data').then(({ data }) => {
+      appointmentService.getFormDataAdmin().then(({ data }) => {
         setFormData(data);
         const pid = searchParams.get('patient_id');
         if (pid) setForm(f => ({ ...f, patient_id: pid }));
@@ -42,7 +42,7 @@ export default function NuevaCitaAdminContent() {
   async function onProcedureChange(procedureId: string) {
     setForm(f => ({ ...f, procedure_id: procedureId, dentist_procedure_id: '', hour: '' }));
     if (!procedureId) return;
-    const { data } = await api.post('/staff/appointments/by-procedure', { procedure_id: procedureId });
+    const { data } = await appointmentService.getByProcedure(procedureId);
     setDentistOptions(data.data ?? data);
     setShowDentistModal(true);
   }
@@ -50,7 +50,7 @@ export default function NuevaCitaAdminContent() {
   async function onDateChange(date: string) {
     setForm(f => ({ ...f, day: date, hour: '' }));
     if (!date || !form.dentist_procedure_id) return;
-    const { data } = await api.post('/staff/appointments/slots', { dentist_procedure_id: form.dentist_procedure_id, date });
+    const { data } = await appointmentService.getSlots(form.dentist_procedure_id, date);
     setSlots(data.slots ?? []);
     setShowSlotsModal(true);
   }
@@ -64,7 +64,7 @@ export default function NuevaCitaAdminContent() {
     const r = appointmentSchema.safeParse(form);
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/admin/appointments', { ...form, patient_id: Number(form.patient_id), branch_id: Number(form.branch_id), dentist_procedure_id: Number(form.dentist_procedure_id) }, { signal }), 'Cita agendada');
+    const result = await execute(signal => appointmentService.createAdmin({ ...form, patient_id: Number(form.patient_id), branch_id: Number(form.branch_id), dentist_procedure_id: Number(form.dentist_procedure_id) }, signal), 'Cita agendada');
     if (result.response) {
       router.push('/admin/citas');
     }

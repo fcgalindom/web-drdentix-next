@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { productService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
 import { useDialogHandler } from '@/hooks/useDialogHandler';
@@ -27,7 +27,7 @@ export default function ProductosPage() {
   const { loading: authLoading } = useAuth('Administrator');
 
   const fetchProducts = useCallback(async ({ page }: { page: number }) => {
-    const { data } = await api.get(`/admin/products?page=${page}`);
+    const { data } = await productService.list(page);
     return { ...data.meta, data: data.data } as PaginatedResponse<Product>;
   }, []);
 
@@ -60,7 +60,7 @@ export default function ProductosPage() {
     if (formId) payload.id = formId;
 
     const result = await execute(
-      async (signal) => api.post('/admin/products', payload, { signal }),
+      async (signal) => productService.create(payload, signal),
       formId ? 'Producto actualizado' : 'Producto creado'
     );
 
@@ -73,7 +73,7 @@ export default function ProductosPage() {
 
   async function remove(id: number) {
     if (!confirm('¿Eliminar producto?')) return;
-    await api.delete(`/admin/products/${id}`);
+    await productService.delete(id);
     toast.success('Eliminado');
     refresh();
   }

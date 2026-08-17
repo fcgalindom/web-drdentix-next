@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { appointmentService } from '@/services';
 import { patientAppointmentSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
@@ -31,7 +31,7 @@ export default function NuevaCitaPatient() {
 
   useEffect(() => {
     if (!loading) {
-      api.post('/patient/appointments/form-data').then(({ data }) => setFormData(data));
+      appointmentService.getFormDataPatient().then(({ data }) => setFormData(data));
     }
   }, [loading]);
 
@@ -39,7 +39,7 @@ export default function NuevaCitaPatient() {
     setForm(f => ({ ...f, procedure_id: procedureId, dentist_procedure_id: '', hour: '' }));
     setSelectedDentistName('');
     if (!procedureId) return;
-    const { data } = await api.post('/patient/appointments/by-procedure', { procedure_id: procedureId });
+    const { data } = await appointmentService.getByProcedurePatient(procedureId);
     setDentistOptions(data);
     setShowDentistModal(true);
   }
@@ -53,7 +53,7 @@ export default function NuevaCitaPatient() {
   async function onDateChange(date: string) {
     setForm(f => ({ ...f, day: date, hour: '' }));
     if (!date || !form.dentist_procedure_id) return;
-    const { data } = await api.post('/patient/appointments/slots', { dentist_procedure_id: form.dentist_procedure_id, date });
+    const { data } = await appointmentService.getSlotsPatient(form.dentist_procedure_id, date);
     setSlots(data.slots ?? []);
     setShowSlotsModal(true);
   }
@@ -62,7 +62,7 @@ export default function NuevaCitaPatient() {
     const r = patientAppointmentSchema.safeParse(form);
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/patient/appointments', { dentist_procedure_id: Number(form.dentist_procedure_id), branch_id: Number(form.branch_id), day: form.day, hour: form.hour }, { signal }), '¡Cita agendada!');
+    const result = await execute(signal => appointmentService.createPatient({ dentist_procedure_id: Number(form.dentist_procedure_id), branch_id: Number(form.branch_id), day: form.day, hour: form.hour }, signal), '¡Cita agendada!');
     if (result.response) {
       router.push('/patient/citas');
     }

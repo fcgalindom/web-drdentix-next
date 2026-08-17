@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { promotionService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
 import { useDialogHandler } from '@/hooks/useDialogHandler';
@@ -27,7 +27,7 @@ export default function PromocionesPage() {
   const { loading: authLoading } = useAuth('Administrator');
 
   const fetchPromotions = useCallback(async ({ page }: { page: number }) => {
-    const { data } = await api.get(`/admin/promotions?page=${page}`);
+    const { data } = await promotionService.list(page);
     return { ...data.meta, data: data.data } as PaginatedResponse<Promo>;
   }, []);
 
@@ -70,7 +70,7 @@ export default function PromocionesPage() {
     if (formId) payload.id = formId;
 
     const result = await execute(
-      async (signal) => api.post('/admin/promotions', payload, { signal }),
+      async (signal) => promotionService.create(payload, signal),
       formId ? 'Promoción actualizada' : 'Promoción creada'
     );
 
@@ -85,7 +85,7 @@ export default function PromocionesPage() {
 
   const deactivate = useCallback(async (p: Promo) => {
     try {
-      await api.post('/admin/promotions/deactivate', { id: p.id });
+      await promotionService.deactivate(p.id);
       toast.success('Promoción desactivada');
       refresh();
     } catch (e: any) {

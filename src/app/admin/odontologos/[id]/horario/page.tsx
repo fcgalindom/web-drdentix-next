@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import api from '@/lib/api';
+import { dentistService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
 import { useAlert } from '@/hooks/useAlert';
@@ -32,7 +32,7 @@ export default function HorarioPage() {
 
   async function load() {
     try {
-      const { data } = await api.get(`/admin/dentists/${dentistId}/schedule`);
+      const { data } = await dentistService.getSchedule(dentistId);
       if (data.length > 0) {
         const filled = defaultSlots().map((def, i) => {
           const found = data.find((s: any) => s.day === i + 1);
@@ -56,7 +56,7 @@ export default function HorarioPage() {
       if (s.attend && s.hour_start === s.hour_end) { showAlert(`El ${DAYS[s.day-1]} tiene hora inicio igual a hora fin`, 'warning'); return; }
       if (s.attend && s.break && s.break_start === s.break_end) { showAlert(`El descanso del ${DAYS[s.day-1]} tiene inicio igual a fin`, 'warning'); return; }
     }
-    await execute(signal => api.post('/admin/dentists/schedule', { dentist_id: dentistId, schedules: slots }, { signal }), 'Horario guardado');
+    await execute(signal => dentistService.saveSchedule(dentistId, slots, signal), 'Horario guardado');
   }
 
   if (loading) return <SpinnerLoad />;

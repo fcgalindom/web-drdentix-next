@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import { roleService, permissionService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ export default function RoleDetailPage() {
   const { loading } = useAuth('Administrator');
   const router = useRouter();
   const { id } = useParams();
+  const roleId = Number(id);
   const [role, setRole] = useState<any>(null);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
@@ -22,8 +23,8 @@ export default function RoleDetailPage() {
   async function load() {
     try {
       const [roleRes, permsRes] = await Promise.all([
-        api.get(`/roles/${id}`),
-        api.get('/permissions'),
+        roleService.getPermissions(roleId),
+        permissionService.list(),
       ]);
       setRole(roleRes.data);
       setAllPermissions(permsRes.data);
@@ -40,7 +41,7 @@ export default function RoleDetailPage() {
   async function syncPermissions() {
     setSaving(true);
     try {
-      await api.put(`/roles/${id}/permissions`, { permissions: selected });
+      await roleService.syncPermissions(roleId, selected);
       toast.success('Permisos actualizados');
     } catch (e: any) { toast.error(e.response?.data?.message ?? 'Error'); }
     finally { setSaving(false); }

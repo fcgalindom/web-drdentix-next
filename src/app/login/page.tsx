@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import { authService } from '@/services';
 import { setSession } from '@/lib/auth';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -29,7 +29,7 @@ export default function LoginPage() {
     const r = loginPatientSchema.safeParse({ document: doc });
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/auth/login/patient', { document: doc }, { signal }));
+    const result = await execute(() => authService.loginPatient(doc));
     if (result.response) {
       setSession(result.response.data.token, result.response.data.user);
       router.replace('/patient/citas');
@@ -40,7 +40,7 @@ export default function LoginPage() {
     const r = loginStaffSchema.safeParse({ email, password });
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/auth/login', { email, password }, { signal }));
+    const result = await execute(() => authService.loginStaff(email, password));
     if (result.response) {
       setSession(result.response.data.token, result.response.data.user);
       router.replace(result.response.data.user.type_user === 'Dentist' ? '/dentist/citas' : '/admin/citas');
@@ -51,7 +51,7 @@ export default function LoginPage() {
     const r = patientSchema.safeParse(regForm);
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
-    const result = await execute(signal => api.post('/admin/patients', regForm, { signal }));
+    const result = await execute(signal => authService.registerPatient(regForm, signal));
     if (result.response) {
       setShowRegister(false);
       setTab('patient');

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { roleService } from '@/services';
 import { roleSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
@@ -25,7 +25,7 @@ export default function RolesPage() {
   const router = useRouter();
 
   const fetchRoles = useCallback(async (params: { page: number }) => {
-    const { data } = await api.get(`/roles?page=${params.page}`);
+    const { data } = await roleService.list(params.page);
     return data;
   }, []);
 
@@ -57,8 +57,8 @@ export default function RolesPage() {
     const { id, name } = form;
     const { alertSeverity: severity, message } = await execute(
       (signal) => id > 0
-        ? api.put(`/roles/${id}`, { name }, { signal })
-        : api.post('/roles', { name, guard_name: 'web' }, { signal }),
+        ? roleService.update(id, name, signal)
+        : roleService.create(name, signal),
       id > 0 ? 'Rol actualizado' : 'Rol creado'
     );
 
@@ -72,7 +72,7 @@ export default function RolesPage() {
   const remove = async (id: number, name: string) => {
     if (!confirm(`¿Eliminar el rol "${name}"?`)) return;
     try {
-      await api.delete(`/roles/${id}`);
+      await roleService.delete(id);
       toast.success('Rol eliminado');
       refresh();
     } catch { toast.error('Error al eliminar'); }

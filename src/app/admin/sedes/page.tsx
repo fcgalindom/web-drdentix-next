@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { branchService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
 import { useDialogHandler } from '@/hooks/useDialogHandler';
@@ -26,7 +26,7 @@ export default function SedesPage() {
   const { loading: authLoading } = useAuth('Administrator');
 
   const fetchBranches = useCallback(async ({ page }: { page: number }) => {
-    const { data } = await api.get(`/admin/branches?page=${page}`);
+    const { data } = await branchService.list(page);
     return { ...data.meta, data: data.data } as PaginatedResponse<Branch>;
   }, []);
 
@@ -41,7 +41,7 @@ export default function SedesPage() {
   } = usePaginator<Branch, Record<string, never>>(fetchBranches, {} as Record<string, never>);
 
   const toggleStateApi = useCallback(async (newValue: boolean, id: number) => {
-    return api.post('/admin/branches/state', { id, state: newValue ? 'Activo' : 'Inactivo' }) as ReturnType<typeof api.post<Branch>>;
+    return branchService.toggleState(id, newValue ? 'Activo' : 'Inactivo');
   }, []);
 
   const { handleChangeActive } = useStatusToggle<Branch>({
@@ -81,7 +81,7 @@ export default function SedesPage() {
     if (formId) payload.id = formId;
 
     const result = await execute(
-      async (signal) => api.post('/admin/branches', payload, { signal }),
+      async (signal) => branchService.create(payload, signal),
       formId ? 'Sede actualizada' : 'Sede creada'
     );
 

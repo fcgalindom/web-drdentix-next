@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { permissionService } from '@/services';
 import { permissionSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
@@ -28,7 +28,7 @@ export default function PermisosPage() {
 
   async function load() {
     try {
-      const { data } = await api.get('/permissions');
+      const { data } = await permissionService.list();
       setItems(data);
     } catch { toast.error('Error al cargar permisos'); }
   }
@@ -43,9 +43,9 @@ export default function PermisosPage() {
     const { id, name } = form;
     const { response, message, alertSeverity } = await execute(async (_signal) => {
       if (id) {
-        return await api.put(`/permissions/${id}`, { name });
+        return await permissionService.update(id, name);
       } else {
-        return await api.post('/permissions', { name, guard_name: 'web' });
+        return await permissionService.create(name);
       }
     }, id ? 'Permiso actualizado' : 'Permiso creado');
 

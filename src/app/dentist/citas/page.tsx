@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { appointmentService } from '@/services';
 import { paymentSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
 import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
@@ -37,7 +37,7 @@ export default function DentistCitasPage() {
   async function load() {
     const params: any = {};
     if (filter) params.date = filter;
-    const { data } = await api.get('/dentist/appointments', { params });
+    const { data } = await appointmentService.listDentist(params);
     setItems(Array.isArray(data) ? data : data.data ?? []);
     setMeta(data.meta ?? null);
   }
@@ -56,7 +56,7 @@ export default function DentistCitasPage() {
       body.payments = [{ price: Number(price), procedure_id: selected.dentist_procedure?.procedure?.id }];
     }
     await execute(async (signal) => {
-      const response = await api.post('/dentist/appointments/state', body, { signal });
+      const response = await appointmentService.changeStateDentist(body, signal);
       setPayModal(false); setSelected(null); setPrice('');
       load();
       return response;

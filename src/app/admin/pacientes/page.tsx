@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { patientService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -20,7 +20,7 @@ import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import Paginator from '@/components/web/Paginator';
 import type { PaginatedResponse } from '@/interfaces/index';
-import type { AxiosResponse } from 'axios';
+
 import type { ChangeEvent } from 'react';
 
 interface Patient { id: number; name: string; city: string; telephone: string; user: { document: string; email: string; state: string }; }
@@ -67,12 +67,7 @@ export default function PacientesPage() {
     refresh, handleChange, handleFilter, updateLocalItem, setItems,
   } = usePaginator<Patient, PatientFilters>(
     useCallback(async (params) => {
-      const searchParams = new URLSearchParams();
-      searchParams.set('page', String(params.page));
-      if (params.name) searchParams.set('name', params.name);
-      if (params.document) searchParams.set('document', params.document);
-      if (params.city) searchParams.set('city', params.city);
-      const { data } = await api.get(`/admin/patients?${searchParams}`);
+      const { data } = await patientService.list({ page: params.page, name: params.name, document: params.document, city: params.city });
       return data as PaginatedResponse<Patient>;
     }, []),
     { name: '', document: '', city: '' },
@@ -84,10 +79,7 @@ export default function PacientesPage() {
   });
 
   const toggleAdapter = useCallback(async (newValue: boolean, itemId: number) => {
-    return api.post('/admin/patients/deactivate', {
-      id: itemId,
-      state: newValue ? 'Activo' : 'Inactivo',
-    }) as Promise<AxiosResponse<Patient>>;
+    return patientService.deactivate(itemId, newValue ? 'Activo' : 'Inactivo');
   }, []);
 
   const { handleChangeActive } = useStatusToggle<Patient>({
@@ -105,7 +97,7 @@ export default function PacientesPage() {
       const { id: pid, ...rest } = form;
       const payload: any = { ...rest };
       if (pid) payload.id = pid;
-      const { data } = await api.post('/admin/patients', payload);
+      const { data } = await patientService.create(payload, signal);
       return data;
     });
 
