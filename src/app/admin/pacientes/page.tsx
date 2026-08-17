@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { patientService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
@@ -19,6 +19,7 @@ import SpinnerLoad from '@/components/web/SpinnerLoad';
 import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import Paginator from '@/components/web/Paginator';
+import AppSelect from '@/components/ui/AppSelect';
 import type { PaginatedResponse } from '@/interfaces/index';
 
 import type { ChangeEvent } from 'react';
@@ -61,6 +62,26 @@ export default function PacientesPage() {
 
   const { alert, showAlert, hideAlert } = useAlert();
   const { isLoading: saving, execute } = useAsyncFormHandler();
+
+  const [nameOptions, setNameOptions] = useState<{ value: string; label: string }[]>([]);
+  const [cityOptions, setCityOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      patientService.getNames().then(({ data }) => {
+        setNameOptions([
+          { value: '', label: 'Todos' },
+          ...data.map((n: string) => ({ value: n, label: n })),
+        ]);
+      });
+      patientService.getCities().then(({ data }) => {
+        setCityOptions([
+          { value: '', label: 'Todas' },
+          ...data.map((c: string) => ({ value: c, label: c })),
+        ]);
+      });
+    }
+  }, [authLoading]);
 
   const {
     items, paginator, filters, page, setPage, loading,
@@ -203,9 +224,28 @@ export default function PacientesPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-3 items-end">
-        <Input label="Nombre" name="name" value={filters.name} onChange={handleChange} />
-        <Input label="Cédula" name="document" value={filters.document} onChange={handleChange} />
-        <Input label="Ciudad" name="city" value={filters.city} onChange={handleChange} />
+        <div className="flex flex-col gap-1 min-w-[220px]">
+          <label className="text-sm font-medium text-gray-700">Nombre</label>
+          <AppSelect
+            options={nameOptions}
+            value={filters.name}
+            onChange={(val) => handleChange({ target: { name: 'name', value: val } } as any)}
+            placeholder="Todos"
+          />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[180px]">
+          <label className="text-sm font-medium text-gray-700">Cédula</label>
+          <Input name="document" value={filters.document} onChange={handleChange} />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[180px]">
+          <label className="text-sm font-medium text-gray-700">Ciudad</label>
+          <AppSelect
+            options={cityOptions}
+            value={filters.city}
+            onChange={(val) => handleChange({ target: { name: 'city', value: val } } as any)}
+            placeholder="Todas"
+          />
+        </div>
         <Button onClick={() => handleFilter()}>Buscar</Button>
       </div>
 

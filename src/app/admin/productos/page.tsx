@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { productService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
@@ -13,6 +13,7 @@ import WebPaginator from '@/components/web/Paginator';
 import SpinnerLoad from '@/components/web/SpinnerLoad';
 import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
+import AppSelect from '@/components/ui/AppSelect';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,14 +21,37 @@ import { productSchema, extractErrors } from '@/lib/schemas';
 import type { PaginatedResponse } from '@/interfaces/index';
 
 interface Product { id: number; active_principle: string; concentration: string; amount: number; pharmaceutical_form: string; commercial_presentation: string; medication_unit: string; batch: string; health_register_invima: string; expiration_date: string; semaphore: string; date_of_admission: string; }
+interface Filters { active_principle: string; semaphore: string; }
 
 const empty = { id: 0, active_principle: '', concentration: '', amount: '', pharmaceutical_form: '', commercial_presentation: '', medication_unit: '', batch: '', health_register_invima: '', expiration_date: '', date_of_admission: '' };
+
+const SEMAPHORE_OPTIONS = [
+  { value: '', label: 'Todos' },
+  { value: 'verde', label: '🟢 Verde (>12 meses)' },
+  { value: 'amarillo', label: '🟡 Amarillo (3-12 meses)' },
+  { value: 'rojo', label: '🔴 Rojo (<3 meses)' },
+];
 
 export default function ProductosPage() {
   const { loading: authLoading } = useAuth('Administrator');
 
-  const fetchProducts = useCallback(async ({ page }: { page: number }) => {
-    const { data } = await productService.list(page);
+  const [principleOptions, setPrincipleOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      productService.getActivePrinciples().then(({ data }) => {
+        setPrincipleOptions([
+          { value: '', label: 'Todos' },
+          ...data.map((p: string) => ({ value: p, label: p })),
+        ]);
+      });
+    }
+  }, [authLoading]);
+
+  const initialFilters: Filters = { active_principle: '', semaphore: '' };
+
+  const fetchProducts = useCallback(async ({ page, active_principle, semaphore }: Filters & { page: number }) => {
+    const { data } = await productService.list(page, { active_principle, semaphore });
     return { ...data.meta, data: data.data } as PaginatedResponse<Product>;
   }, []);
 
@@ -38,7 +62,10 @@ export default function ProductosPage() {
     setPage,
     loading: listLoading,
     refresh,
-  } = usePaginator<Product, Record<string, never>>(fetchProducts, {} as Record<string, never>);
+    filters,
+    handleChange,
+    handleFilter,
+  } = usePaginator<Product, Filters>(fetchProducts, initialFilters);
 
   const { open, title, handleOpen, handleClose } = useDialogHandler({ create: 'Nuevo producto', edit: 'Editar producto' });
 
@@ -90,6 +117,28 @@ export default function ProductosPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#0F172A]">Inventario médico</h1>
         <Button onClick={() => { setForm(empty); setErrors({}); handleOpen(); }}><Plus size={16} /> Crear</Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1 min-w-[240px]">
+          <label className="text-sm font-medium text-gray-700">Principio activo</label>
+          <AppSelect
+            options={principleOptions}
+            value={filters.active_principle}
+            onChange={(val) => handleChange({ target: { name: 'active_principle', value: val } } as any)}
+            placeholder="Todos"
+          />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-sm font-medium text-gray-700">Semáforo</label>
+          <AppSelect
+            options={SEMAPHORE_OPTIONS}
+            value={filters.semaphore}
+            onChange={(val) => handleChange({ target: { name: 'semaphore', value: val } } as any)}
+            placeholder="Todos"
+          />
+        </div>
+        <Button onClick={handleFilter}>Buscar</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">

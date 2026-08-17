@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { procedureService } from '@/services';
 import { procedureSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,19 +16,49 @@ import SpinnerLoad from '@/components/web/SpinnerLoad';
 import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import Paginator from '@/components/web/Paginator';
+import AppSelect from '@/components/ui/AppSelect';
 import { Plus, Pencil } from 'lucide-react';
+import type { PaginatedResponse } from '@/interfaces/index';
 
 interface Procedure { id: number; name: string; duration: number; state: string; }
+interface Filters { name: string; duration: string; }
 
 export default function ProcedimientosPage() {
   const { loading: authLoading } = useAuth('Administrator');
   const { alert, showAlert, hideAlert } = useAlert();
 
+  const [nameOptions, setNameOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      procedureService.getSelect().then(({ data }) => {
+        setNameOptions([
+          { value: '', label: 'Todos' },
+          ...data.map((p: any) => ({ value: p.name, label: p.name })),
+        ]);
+      });
+    }
+  }, [authLoading]);
+
+  const DURATION_OPTIONS = [
+    { value: '', label: 'Todas' },
+    { value: '30', label: '30 min' },
+    { value: '45', label: '45 min' },
+    { value: '60', label: '60 min' },
+    { value: '90', label: '90 min' },
+    { value: '120', label: '120 min' },
+  ];
+
+  const initialFilters: Filters = { name: '', duration: '' };
+
   const {
-    items, setItems, paginator, page, setPage, loading, refresh
-  } = usePaginator<Procedure, {}>(
-    (params) => procedureService.list(params.page).then(r => r.data),
-    {}
+    items, setItems, paginator, page, setPage, loading, refresh, filters, handleChange, handleFilter,
+  } = usePaginator<Procedure, Filters>(
+    async (params) => {
+      const { data } = await procedureService.list(params.page, { name: params.name, duration: params.duration });
+      return data as PaginatedResponse<Procedure>;
+    },
+    initialFilters
   );
 
   const { open, title, handleOpen, handleClose } = useDialogHandler({
@@ -91,6 +121,28 @@ export default function ProcedimientosPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#0F172A]">Procedimientos</h1>
         <Button onClick={openCreate}><Plus size={16} /> Crear</Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1 min-w-[220px]">
+          <label className="text-sm font-medium text-gray-700">Procedimiento</label>
+          <AppSelect
+            options={nameOptions}
+            value={filters.name}
+            onChange={(val) => handleChange({ target: { name: 'name', value: val } } as any)}
+            placeholder="Todos"
+          />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[160px]">
+          <label className="text-sm font-medium text-gray-700">Duración</label>
+          <AppSelect
+            options={DURATION_OPTIONS}
+            value={filters.duration}
+            onChange={(val) => handleChange({ target: { name: 'duration', value: val } } as any)}
+            placeholder="Todas"
+          />
+        </div>
+        <Button onClick={handleFilter}>Buscar</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">

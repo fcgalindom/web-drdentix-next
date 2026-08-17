@@ -1,8 +1,12 @@
 import api from '@/plugins/api';
 
 export const procedureService = {
-  list: (page: number) =>
-    api.get(`/admin/procedures?page=${page}`),
+  list: (page: number, params?: { name?: string; duration?: string }) => {
+    const query = new URLSearchParams({ page: String(page) });
+    if (params?.name) query.set('name', params.name);
+    if (params?.duration) query.set('duration', params.duration);
+    return api.get(`/admin/procedures?${query.toString()}`);
+  },
 
   create: (data: Record<string, unknown>, signal?: AbortSignal) =>
     api.post('/admin/procedures', data, { signal }),

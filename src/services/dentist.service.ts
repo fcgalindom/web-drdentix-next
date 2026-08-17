@@ -18,6 +18,10 @@ export const dentistService = {
 
   getSelect: () => api.get('/staff/dentists/select'),
 
+  getNames: () => api.get('/admin/dentists/names'),
+
+  getCities: () => api.get('/admin/dentists/cities'),
+
   getMySchedule: () => api.get('/dentist/schedule'),
 
   saveMySchedule: (dentistId: number, schedules: unknown[], signal?: AbortSignal) =>

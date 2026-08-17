@@ -15,6 +15,7 @@ import ErrorMessage from '@/components/web/ErrorMessage';
 import toast from 'react-hot-toast';
 import { parseCOP, formatDate } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, MessageCircle, Phone, Trash2, Plus, FileText } from 'lucide-react';
+import AppSelect from '@/components/ui/AppSelect';
 
 interface Appointment {
   id: number; day: string; hour: string; state: string; pay: number; type_state: number;
@@ -134,18 +135,21 @@ export default function CitasAdminPage() {
         <Input label="Paciente" value={filters.patient} onChange={(e) => setFilters({ ...filters, patient: e.target.value })} />
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Estado</label>
-          <select value={filters.state} onChange={(e) => setFilters({ ...filters, state: e.target.value })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-            {STATES.map(s => <option key={s} value={s === 'Todos' ? '' : s}>{s}</option>)}
-          </select>
+          <AppSelect
+            options={STATES.map(s => ({ value: s === 'Todos' ? '' : s, label: s }))}
+            value={filters.state}
+            onChange={(val) => setFilters({ ...filters, state: val })}
+            placeholder="Todos"
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Odontólogo</label>
-          <select value={filters.dentist_id} onChange={(e) => setFilters({ ...filters, dentist_id: e.target.value })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-            <option value="">Todos</option>
-            {dentists.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          <AppSelect
+            options={[{ value: '', label: 'Todos' }, ...dentists.map(d => ({ value: d.id, label: d.name }))]}
+            value={filters.dentist_id}
+            onChange={(val) => setFilters({ ...filters, dentist_id: val })}
+            placeholder="Todos"
+          />
         </div>
         <Input label="Desde" type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} />
         <Input label="Hasta" type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} />

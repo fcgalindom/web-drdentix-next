@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PaginatedResponse } from '@/interfaces/index';
 
 export function usePaginator<T, F>(
@@ -11,10 +11,13 @@ export function usePaginator<T, F>(
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
 
+    const apiCallRef = useRef(apiCall);
+    apiCallRef.current = apiCall;
+
     const fetchData = useCallback(async (currentFilters: F, pageNum: number) => {
         setLoading(true);
         try {
-            const response = await apiCall({ ...currentFilters, page: pageNum });
+            const response = await apiCallRef.current({ ...currentFilters, page: pageNum });
             setItems(response.data);
             setPaginator(response);
         } catch (error) {
@@ -22,7 +25,7 @@ export function usePaginator<T, F>(
         } finally {
             setLoading(false);
         }
-    }, [apiCall]);
+    }, []);
 
     useEffect(() => {
         fetchData(filters, page);

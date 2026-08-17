@@ -8,6 +8,7 @@ import { useAlert } from '@/hooks/useAlert';
 import SpinnerLoad from '@/components/web/SpinnerLoad';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import Button from '@/components/ui/Button';
+import AppSelect from '@/components/ui/AppSelect';
 
 const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 const hours = Array.from({ length: 41 }, (_, i) => {
@@ -94,12 +95,12 @@ export default function HorarioPage() {
                         onChange={(e) => update(slot.day, key as keyof Slot, e.target.checked)}
                         className="w-4 h-4 accent-[#0EA5E9]" />
                     ) : (
-                      <select value={String(slot[key as keyof Slot])}
-                        disabled={!slot.attend || (key.includes('break') && !slot.break)}
-                        onChange={(e) => update(slot.day, key as keyof Slot, e.target.value)}
-                        className="border border-gray-300 rounded text-xs px-1 py-1 w-full disabled:opacity-40">
-                        {hours.map(h => <option key={h} value={h}>{h}</option>)}
-                      </select>
+                      <AppSelect
+                        options={hours.map(h => ({ value: h, label: h }))}
+                        value={String(slot[key as keyof Slot])}
+                        isDisabled={!slot.attend || (key.includes('break') && !slot.break)}
+                        onChange={(val) => update(slot.day, key as keyof Slot, val)}
+                      />
                     )}
                   </td>
                 ))}

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { dentistService, procedureService } from '@/services';
 import { dentistSchema, extractErrors } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,7 @@ import SpinnerLoad from '@/components/web/SpinnerLoad';
 import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import { Plus, Pencil, CalendarDays, X } from 'lucide-react';
+import AppSelect, { type SelectOption } from '@/components/ui/AppSelect';
 import { useRouter } from 'next/navigation';
 import type { PaginatedResponse } from '@/interfaces/index';
 
@@ -30,6 +31,8 @@ export default function OdontologosPage() {
   const router = useRouter();
 
   const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [nameOptions, setNameOptions] = useState<SelectOption[]>([]);
+  const [cityOptions, setCityOptions] = useState<SelectOption[]>([]);
 
   const initialFilters = { name: '', document: '', city: '' };
 
@@ -47,6 +50,12 @@ export default function OdontologosPage() {
   useEffect(() => {
     if (!loading) {
       procedureService.getSelect().then(res => setProcedures(res.data));
+      dentistService.getNames().then(({ data }) => {
+        setNameOptions([{ value: '', label: 'Todos' }, ...data.map((n: string) => ({ value: n, label: n }))]);
+      });
+      dentistService.getCities().then(({ data }) => {
+        setCityOptions([{ value: '', label: 'Todas' }, ...data.map((c: string) => ({ value: c, label: c }))]);
+      });
     }
   }, [loading]);
 
@@ -136,9 +145,28 @@ export default function OdontologosPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
-        <Input label="Nombre" name="name" value={filters.name} onChange={handleChange} />
-        <Input label="Cédula" name="document" value={filters.document} onChange={handleChange} />
-        <Input label="Ciudad" name="city" value={filters.city} onChange={handleChange} />
+        <div className="flex flex-col gap-1 min-w-[220px]">
+          <label className="text-sm font-medium text-gray-700">Nombre</label>
+          <AppSelect
+            options={nameOptions}
+            value={filters.name}
+            onChange={(val) => handleChange({ target: { name: 'name', value: val } } as any)}
+            placeholder="Todos"
+          />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[180px]">
+          <label className="text-sm font-medium text-gray-700">Cédula</label>
+          <Input name="document" value={filters.document} onChange={handleChange} />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[180px]">
+          <label className="text-sm font-medium text-gray-700">Ciudad</label>
+          <AppSelect
+            options={cityOptions}
+            value={filters.city}
+            onChange={(val) => handleChange({ target: { name: 'city', value: val } } as any)}
+            placeholder="Todas"
+          />
+        </div>
         <Button onClick={handleFilter}>Buscar</Button>
       </div>
 
@@ -202,10 +230,12 @@ export default function OdontologosPage() {
           )}
           <div className="col-span-2">
             <label className="text-sm font-medium text-gray-700 block mb-1">Procedimientos</label>
-            <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full" onChange={(e) => addProcedure(Number(e.target.value))}>
-              <option value="">Seleccionar procedimiento</option>
-              {procedures.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <AppSelect
+              options={procedures.map(p => ({ value: p.id, label: p.name }))}
+              value=""
+              onChange={(val) => { if (val) addProcedure(Number(val)); }}
+              placeholder="Seleccionar procedimiento"
+            />
             <div className="flex flex-wrap gap-2 mt-2">
               {form.procedure_ids.map((id: number) => {
                 const p = procedures.find(x => x.id === id);

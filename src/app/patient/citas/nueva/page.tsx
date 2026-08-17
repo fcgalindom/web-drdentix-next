@@ -12,6 +12,7 @@ import AlertGeneric from '@/components/web/AlertGeneric';
 import SpinnerLoad from '@/components/web/SpinnerLoad';
 import ErrorMessage from '@/components/web/ErrorMessage';
 import { useRouter } from 'next/navigation';
+import AppSelect from '@/components/ui/AppSelect';
 
 interface Slot { hour_start: string; hour_end: string; }
 
@@ -77,11 +78,12 @@ export default function NuevaCitaPatient() {
       <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Procedimiento *</label>
-          <select value={form.procedure_id} onChange={(e) => onProcedureChange(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-            <option value="">Seleccionar procedimiento</option>
-            {formData.procedures?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          <AppSelect
+            options={formData.procedures?.map((p: any) => ({ value: p.id, label: p.name })) ?? []}
+            value={form.procedure_id}
+            onChange={onProcedureChange}
+            placeholder="Seleccionar procedimiento"
+          />
           <ErrorMessage message={errors.dentist_procedure_id} />
         </div>
 
@@ -96,11 +98,12 @@ export default function NuevaCitaPatient() {
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Sede *</label>
-          <select value={form.branch_id} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-            <option value="">Seleccionar sede</option>
-            {formData.branches?.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <AppSelect
+            options={formData.branches?.map((b: any) => ({ value: b.id, label: b.name })) ?? []}
+            value={form.branch_id}
+            onChange={(val) => setForm({ ...form, branch_id: val })}
+            placeholder="Seleccionar sede"
+          />
           <ErrorMessage message={errors.branch_id} />
         </div>
 

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { branchService } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaginator } from '@/hooks/usePaginator';
@@ -15,18 +15,22 @@ import SpinnerLoad from '@/components/web/SpinnerLoad';
 import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import WebPaginator from '@/components/web/Paginator';
+import AppSelect from '@/components/ui/AppSelect';
 import toast from 'react-hot-toast';
 import { Plus, Pencil } from 'lucide-react';
 import { branchSchema, extractErrors } from '@/lib/schemas';
 import type { PaginatedResponse } from '@/interfaces/index';
 
 interface Branch { id: number; name: string; address: string; contact: string; city: string; state: string; }
+interface Filters { name: string; city: string; }
 
 export default function SedesPage() {
   const { loading: authLoading } = useAuth('Administrator');
 
-  const fetchBranches = useCallback(async ({ page }: { page: number }) => {
-    const { data } = await branchService.list(page);
+  const initialFilters: Filters = { name: '', city: '' };
+
+  const fetchBranches = useCallback(async ({ page, name, city }: Filters & { page: number }) => {
+    const { data } = await branchService.list(page, { name, city });
     return { ...data.meta, data: data.data } as PaginatedResponse<Branch>;
   }, []);
 
@@ -38,7 +42,10 @@ export default function SedesPage() {
     loading: listLoading,
     refresh,
     setItems,
-  } = usePaginator<Branch, Record<string, never>>(fetchBranches, {} as Record<string, never>);
+    filters,
+    handleChange,
+    handleFilter,
+  } = usePaginator<Branch, Filters>(fetchBranches, initialFilters);
 
   const toggleStateApi = useCallback(async (newValue: boolean, id: number) => {
     return branchService.toggleState(id, newValue ? 'Activo' : 'Inactivo');
@@ -50,6 +57,20 @@ export default function SedesPage() {
     refresh,
     fieldName: 'state' as keyof Branch,
   });
+
+  const [sedeOptions, setSedeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [cityOptions, setCityOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      branchService.getSelect().then(({ data }) => {
+        setSedeOptions([{ value: '', label: 'Todas' }, ...data.map((b: any) => ({ value: b.name, label: b.name }))]);
+      });
+      branchService.getCities().then(({ data }) => {
+        setCityOptions([{ value: '', label: 'Todas' }, ...data.map((c: any) => ({ value: c.city, label: c.city }))]);
+      });
+    }
+  }, [authLoading]);
 
   const { open, title, handleOpen, handleClose } = useDialogHandler({ create: 'Nueva sede', edit: 'Editar sede' });
 
@@ -104,6 +125,28 @@ export default function SedesPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#0F172A]">Sedes</h1>
         <Button onClick={handleOpenCreate}><Plus size={16} /> Crear</Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-sm font-medium text-gray-700">Sede</label>
+          <AppSelect
+            options={sedeOptions}
+            value={filters.name}
+            onChange={(val) => { handleChange({ target: { name: 'name', value: val } } as any); }}
+            placeholder="Todas"
+          />
+        </div>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-sm font-medium text-gray-700">Ciudad</label>
+          <AppSelect
+            options={cityOptions}
+            value={filters.city}
+            onChange={(val) => { handleChange({ target: { name: 'city', value: val } } as any); }}
+            placeholder="Todas"
+          />
+        </div>
+        <Button onClick={handleFilter}>Buscar</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">

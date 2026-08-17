@@ -12,4 +12,8 @@ export const patientService = {
 
   deactivate: (id: number, state: string) =>
     api.post('/admin/patients/deactivate', { id, state }),
+
+  getCities: () => api.get('/admin/patients/cities'),
+
+  getNames: () => api.get('/admin/patients/names'),
 };
