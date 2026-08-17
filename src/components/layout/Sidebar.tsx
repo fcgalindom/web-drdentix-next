@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, UserRound, Users, Stethoscope, CalendarDays, Package, Tag, BarChart3, Shield, Key, UserCog } from 'lucide-react';
+import { Building2, UserRound, Users, Stethoscope, CalendarDays, Package, Tag, BarChart3, Shield, Key, UserCog, Crown, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mainLinks = [
@@ -12,6 +12,8 @@ const mainLinks = [
   { href: '/admin/procedimientos',label: 'Procedimientos',  icon: UserRound },
   { href: '/admin/productos',     label: 'Productos',       icon: Package },
   { href: '/admin/promociones',   label: 'Promociones',     icon: Tag },
+  { href: '/admin/planes',        label: 'Planes',           icon: Crown },
+  { href: '/admin/empresas',      label: 'Empresas',         icon: Landmark },
   { href: '/admin/reportes',      label: 'Reportes',        icon: BarChart3 },
 ] as const;
 

@@ -1,6 +1,0 @@
-{
-  "version": "1.0.0",
-  "organization": "IDIME S.A.",
-  "date": "2025-08-05",
-  "abstract": "Catálogo de componentes web reutilizables de idi_app/components/web/. Contiene 7 componentes: AdminSidebar, AlertGeneric, ButtonAppoinment, CarrouselMultiple, ErrorMessage, Paginator, SpinnerLoad. Algunos se conectan directamente con los hooks del proyecto (usePaginator, useDialogHandler, useAsyncFormHandler)."
-}
