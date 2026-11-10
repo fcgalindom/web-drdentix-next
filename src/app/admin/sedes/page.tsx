@@ -16,6 +16,7 @@ import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import WebPaginator from '@/components/web/Paginator';
 import AppSelect from '@/components/ui/AppSelect';
+import { useCities } from '@/hooks/useCities';
 import toast from 'react-hot-toast';
 import { Plus, Pencil } from 'lucide-react';
 import { branchSchema, extractErrors } from '@/lib/schemas';
@@ -26,6 +27,7 @@ interface Filters { name: string; city: string; }
 
 export default function SedesPage() {
   const { loading: authLoading } = useAuth('Administrator');
+  const allCityOptions = useCities();
 
   const initialFilters: Filters = { name: '', city: '' };
 
@@ -192,8 +194,7 @@ export default function SedesPage() {
           <ErrorMessage message={errors.address} />
           <Input label="Contacto *" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
           <ErrorMessage message={errors.contact} />
-          <Input label="Ciudad *" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          <ErrorMessage message={errors.city} />
+          <AppSelect label="Ciudad *" options={allCityOptions} value={form.city} onChange={(val) => setForm({ ...form, city: val })} placeholder="Seleccionar ciudad" />
           <Button onClick={save} loading={saving}>Guardar</Button>
         </div>
       </Modal>

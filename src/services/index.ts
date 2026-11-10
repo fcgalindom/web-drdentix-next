@@ -9,3 +9,4 @@ export { roleService } from './role.service';
 export { permissionService } from './permission.service';
 export { appointmentService } from './appointment.service';
 export { userService } from './user.service';
+export { cityService } from './city.service';

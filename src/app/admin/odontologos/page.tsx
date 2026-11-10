@@ -18,6 +18,7 @@ import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import { Plus, Pencil, CalendarDays, X } from 'lucide-react';
 import AppSelect, { type SelectOption } from '@/components/ui/AppSelect';
+import { useCities } from '@/hooks/useCities';
 import { useRouter } from 'next/navigation';
 import type { PaginatedResponse } from '@/interfaces/index';
 
@@ -29,6 +30,7 @@ const empty = { id: 0, name: '', city: '', document: '', email: '', birth: '', p
 export default function OdontologosPage() {
   const { loading } = useAuth('Administrator');
   const router = useRouter();
+  const allCityOptions = useCities();
 
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [nameOptions, setNameOptions] = useState<SelectOption[]>([]);
@@ -210,8 +212,7 @@ export default function OdontologosPage() {
             <ErrorMessage message={errors.name} />
           </div>
           <div>
-            <Input label="Ciudad *" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} error={errors.city} />
-            <ErrorMessage message={errors.city} />
+            <AppSelect label="Ciudad *" options={allCityOptions} value={form.city} onChange={(val) => setForm({ ...form, city: val })} placeholder="Seleccionar ciudad" />
           </div>
           <div>
             <Input label="Cédula *" value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} error={errors.document} />

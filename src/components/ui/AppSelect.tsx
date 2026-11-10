@@ -38,10 +38,10 @@ const customStyles: StylesConfig<SelectOption, false, GroupBase<SelectOption>> =
   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
 };
 
-export default function AppSelect({ options, value, onChange, placeholder = 'Seleccionar...', isDisabled = false, className }: AppSelectProps) {
+export default function AppSelect({ options, value, onChange, placeholder = 'Seleccionar...', isDisabled = false, className, label }: AppSelectProps) {
   const selected = options.find(o => String(o.value) === String(value ?? '')) ?? null;
 
-  return (
+  const select = (
     <ReactSelect<SelectOption>
       options={options}
       value={selected}
@@ -54,5 +54,14 @@ export default function AppSelect({ options, value, onChange, placeholder = 'Sel
       className={className}
       noOptionsMessage={() => 'Sin opciones'}
     />
+  );
+
+  if (!label) return select;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+      {select}
+    </div>
   );
 }

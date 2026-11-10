@@ -7,7 +7,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Toggle from '@/components/ui/Toggle';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Eye, Download, Users, Calendar, Activity, SlidersHorizontal, MoreVertical } from 'lucide-react';
+import { Plus, Pencil, Eye, Users, Calendar, Activity, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { patientSchema, extractErrors } from '@/lib/schemas';
 import { usePaginator } from '@/hooks/usePaginator';
@@ -16,15 +16,15 @@ import { useAsyncFormHandler } from '@/hooks/useAsyncFormHandler';
 import { useStatusToggle } from '@/hooks/useStatusToggle';
 import { useAlert } from '@/hooks/useAlert';
 import SpinnerLoad from '@/components/web/SpinnerLoad';
-import ErrorMessage from '@/components/web/ErrorMessage';
 import AlertGeneric from '@/components/web/AlertGeneric';
 import Paginator from '@/components/web/Paginator';
 import AppSelect from '@/components/ui/AppSelect';
+import { useCities } from '@/hooks/useCities';
 import type { PaginatedResponse } from '@/interfaces/index';
 
 import type { ChangeEvent } from 'react';
 
-interface Patient { id: number; name: string; city: string; telephone: string; user: { document: string; email: string; state: string }; }
+interface Patient { id: number; name: string; city: string; telephone: string; user: { document: string; email: string; state: string; birth?: string }; }
 
 const empty = { id: 0, name: '', document: '', telephone: '', birth: '', city: '', email: '' };
 
@@ -56,9 +56,11 @@ type PatientFilters = { name: string; document: string; city: string };
 export default function PacientesPage() {
   const { loading: authLoading } = useAuth('Administrator');
   const router = useRouter();
+  const allCityOptions = useCities();
 
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [viewPatient, setViewPatient] = useState<Patient | null>(null);
 
   const { alert, showAlert, hideAlert } = useAlert();
   const { isLoading: saving, execute } = useAsyncFormHandler();
@@ -114,7 +116,7 @@ export default function PacientesPage() {
     if (!r.success) { setErrors(extractErrors(r.error)); return; }
     setErrors({});
 
-    const { response } = await execute(async (signal) => {
+    const { response, fieldErrors } = await execute(async (signal) => {
       const { id: pid, ...rest } = form;
       const payload: any = { ...rest };
       if (pid) payload.id = pid;
@@ -122,11 +124,15 @@ export default function PacientesPage() {
       return data;
     });
 
+    if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+      setErrors(Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v[0]])));
+      return;
+    }
+
     if (response) {
       showAlert(form.id ? 'Paciente actualizado' : 'Paciente creado', 'success');
       handleClose();
-      if (!form.id) router.push(`/admin/citas?patient_id=${(response as any).id}`);
-      else refresh();
+      refresh();
     }
   }
 
@@ -142,7 +148,7 @@ export default function PacientesPage() {
       name: p.name,
       document: p.user.document,
       telephone: p.telephone,
-      birth: '',
+      birth: p.user.birth ? p.user.birth.substring(0, 10) : '',
       city: p.city ?? '',
       email: p.user.email ?? '',
     });
@@ -182,10 +188,7 @@ export default function PacientesPage() {
           <p className="text-gray-500 mt-1 text-sm">Administre el historial clínico y el estado de sus pacientes con precisión.</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-            <Download size={15} /> Exportar
-          </button>
-          <button
+<button
             onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white rounded-lg text-sm font-medium hover:bg-[#012040] transition-colors"
           >
@@ -293,7 +296,7 @@ export default function PacientesPage() {
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-1">
                     <button onClick={() => openEditItem(p)} className="p-1.5 text-gray-400 hover:text-[#0F172A] hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={14} /></button>
-                    <button onClick={() => router.push(`/admin/citas?patient_id=${p.id}`)} className="p-1.5 text-gray-400 hover:text-[#0EA5E9] hover:bg-cyan-50 rounded-lg transition-colors"><Eye size={14} /></button>
+                    <button onClick={() => setViewPatient(p)} className="p-1.5 text-gray-400 hover:text-[#0EA5E9] hover:bg-cyan-50 rounded-lg transition-colors"><Eye size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -309,18 +312,56 @@ export default function PacientesPage() {
         </div>
       </div>
 
+      <Modal open={!!viewPatient} onClose={() => setViewPatient(null)} title="Detalle del paciente" size="sm">
+        {viewPatient && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-4 pb-3 border-b border-gray-100">
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0 ${getAvatarColor(viewPatient.id)}`}>
+                {getInitials(viewPatient.name)}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800 text-base">{viewPatient.name}</p>
+                <Statebadge state={viewPatient.user?.state} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Documento</p>
+                <p className="text-gray-700 font-medium">{viewPatient.user?.document ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Teléfono</p>
+                <p className="text-gray-700 font-medium">{viewPatient.telephone ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Email</p>
+                <p className="text-gray-700 font-medium">{viewPatient.user?.email ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Ciudad</p>
+                <p className="text-gray-700 font-medium">{viewPatient.city ?? '—'}</p>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-gray-100">
+              <button
+                onClick={() => { setViewPatient(null); router.push(`/admin/citas?patient_id=${viewPatient.id}`); }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#0F172A] text-white rounded-lg text-sm font-medium hover:bg-[#012040] transition-colors"
+              >
+                <Calendar size={14} /> Ver citas
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Modal open={open} onClose={handleClose} title={title} size="sm">
         <div className="grid gap-3">
           <Input label="Nombre *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
-          <ErrorMessage message={errors.name} />
           <Input label="Documento *" value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} error={errors.document} />
-          <ErrorMessage message={errors.document} />
           <Input label="Teléfono *" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} error={errors.telephone} />
-          <ErrorMessage message={errors.telephone} />
           <Input label="Fecha de nacimiento" type="date" value={form.birth} onChange={(e) => setForm({ ...form, birth: e.target.value })} />
-          <Input label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+          <AppSelect label="Ciudad" options={allCityOptions} value={form.city} onChange={(val) => setForm({ ...form, city: val })} placeholder="Seleccionar ciudad" />
           <Input label="Email (opcional)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
-          <ErrorMessage message={errors.email} />
           <Button onClick={save} loading={saving}>Guardar</Button>
         </div>
       </Modal>

@@ -30,7 +30,7 @@ export const useAsyncFormHandler = () => {
         asyncFunction: (signal: AbortSignal) => Promise<T>,
         successMessage?: string,
         errorMessage?: string
-    ): Promise<{ response: T | undefined; message: string; alertSeverity: AlertSeverity }> => {
+    ): Promise<{ response: T | undefined; message: string; alertSeverity: AlertSeverity; fieldErrors: Record<string, string[]> }> => {
 
         controllerRef.current?.abort();
         const controller = new AbortController();
@@ -50,12 +50,13 @@ export const useAsyncFormHandler = () => {
                 alertMessage: successMessage || 'Operación completada con éxito.',
                 alertSeverity: 'success',
             });
-            return { response, message: successMsg, alertSeverity: 'success' };
+            return { response, message: successMsg, alertSeverity: 'success', fieldErrors: {} as Record<string, string[]> };
 
         } catch (err) {
             const axiosError = err as AxiosError;
 
             let finalErrorMessage = errorMessage || 'Ha ocurrido un error inesperado.';
+            let fieldErrors: Record<string, string[]> = {};
 
             if (axiosError.code === 'ECONNABORTED' || (err as any).name === 'AbortError') {
                 finalErrorMessage = 'La solicitud ha tardado demasiado, intenta de nuevo más tarde (Tiempo de espera agotado).';
@@ -65,6 +66,7 @@ export const useAsyncFormHandler = () => {
                 } else if (axiosError.status >= 400 && axiosError.status < 500) {
                     if (axiosError.status == 422) {
                         finalErrorMessage = (axiosError.response?.data as any)?.message || 'Error de validación.';
+                        fieldErrors = (axiosError.response?.data as any)?.errors ?? {};
                     } else {
                         finalErrorMessage = 'Solicitud incorrecta o no autorizada.';
                     }
@@ -73,14 +75,16 @@ export const useAsyncFormHandler = () => {
                 finalErrorMessage = 'Error de red: No se pudo conectar con el servidor.';
             }
 
-            toast.error(finalErrorMessage);
+            if (Object.keys(fieldErrors).length === 0) {
+                toast.error(finalErrorMessage);
+            }
 
             setState({
                 isLoading: false,
                 alertMessage: finalErrorMessage,
                 alertSeverity: 'error',
             });
-            return { response: undefined, message: finalErrorMessage, alertSeverity: 'error' };
+            return { response: undefined, message: finalErrorMessage, alertSeverity: 'error', fieldErrors };
         }
     }, []);
 
