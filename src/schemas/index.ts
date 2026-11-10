@@ -1,10 +1,12 @@
 export { extractErrors } from './helpers';
 export * from './auth.schema';
 export * from './patient.schema';
+export * from './company.schema';
 export * from './dentist.schema';
 export * from './branch.schema';
 export * from './procedure.schema';
 export * from './product.schema';
 export * from './promotion.schema';
+export * from './plan.schema';
 export * from './role.schema';
 export * from './appointment.schema';

@@ -3,11 +3,20 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getUser } from '@/lib/auth';
-import { Calendar, Bell, Zap, CheckCircle, Star } from 'lucide-react';
+import { planService } from '@/services';
+import { cn } from '@/lib/utils';
+import { Calendar, Bell, Zap, Star } from 'lucide-react';
+
+interface LandingPlan { id: number; name: string; price: string; description: string; }
 
 export default function Home() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
+  const [plans, setPlans] = useState<LandingPlan[]>([]);
+
+  useEffect(() => {
+    planService.publicList().then(({ data }) => setPlans(data.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const user = getUser();
@@ -35,6 +44,7 @@ export default function Home() {
             <a href="#funciones" className="hover:text-[#0EA5E9] transition-colors">Funciones</a>
             <a href="#precios" className="hover:text-[#0EA5E9] transition-colors">Precios</a>
             <a href="#testimonios" className="hover:text-[#0EA5E9] transition-colors">Testimonios</a>
+            <Link href="/empresas" className="hover:text-[#0EA5E9] transition-colors">Empresas</Link>
           </nav>
           <Link href="/login"
             className="px-4 py-2 bg-[#0EA5E9] text-white text-sm font-semibold rounded-lg hover:bg-[#0284C7] transition-colors">
@@ -138,63 +148,33 @@ export default function Home() {
             <p className="text-slate-500 mt-3 text-sm">Elige el plan que mejor se adapte al tamaño de tu negocio.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 items-start">
-            {/* Básico */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-[#0F172A] text-lg">Básico</h3>
-              <div className="mt-3 mb-6">
-                <span className="text-3xl font-extrabold text-[#0F172A]">$19</span>
-                <span className="text-slate-400 text-sm">/mes</span>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {['Hasta 100 citas al mes', '1 Odontólogo conectado'].map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
-                    <CheckCircle size={14} className="text-[#0EA5E9] flex-shrink-0" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/login" className="block text-center py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-                Elegir Básico
-              </Link>
-            </div>
-
-            {/* Pro (destacado) */}
-            <div className="bg-[#0F172A] rounded-2xl p-6 shadow-xl relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0EA5E9] text-white text-xs font-bold px-3 py-1 rounded-full">Más popular</span>
-              <h3 className="font-bold text-white text-lg">Pro</h3>
-              <div className="mt-3 mb-6">
-                <span className="text-3xl font-extrabold text-white">$49</span>
-                <span className="text-slate-400 text-sm">/mes</span>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {['Citas ilimitadas', '5 Odontólogos conectados', 'Gestión de sedes'].map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-slate-300">
-                    <CheckCircle size={14} className="text-[#0EA5E9] flex-shrink-0" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/login" className="block text-center py-2 bg-[#0EA5E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0284C7] transition-colors">
-                Elegir Pro
-              </Link>
-            </div>
-
-            {/* Enterprise */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-[#0F172A] text-lg">Enterprise</h3>
-              <p className="text-slate-400 text-sm mt-1">Personalizado</p>
-              <div className="mt-3 mb-6">
-                <span className="text-2xl font-extrabold text-[#0F172A]">A medida</span>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {['Todo lo de Pro', 'Soporte prioritario 24/7', 'API Access'].map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
-                    <CheckCircle size={14} className="text-[#0EA5E9] flex-shrink-0" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/login" className="block text-center py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-                Contactar Ventas
-              </Link>
-            </div>
+            {plans.map((plan, i) => {
+              const highlighted = i === 1;
+              return (
+                <div key={plan.id} className={cn(
+                  'rounded-2xl p-6 relative',
+                  highlighted ? 'bg-[#0F172A] shadow-xl' : 'bg-white border border-slate-200 shadow-sm'
+                )}>
+                  {highlighted && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0EA5E9] text-white text-xs font-bold px-3 py-1 rounded-full">Más popular</span>
+                  )}
+                  <h3 className={cn('font-bold text-lg', highlighted ? 'text-white' : 'text-[#0F172A]')}>{plan.name}</h3>
+                  <div className="mt-3 mb-6">
+                    <span className={cn('text-3xl font-extrabold', highlighted ? 'text-white' : 'text-[#0F172A]')}>${plan.price}</span>
+                    <span className="text-slate-400 text-sm">/mes</span>
+                  </div>
+                  <p className={cn('text-sm leading-relaxed mb-6', highlighted ? 'text-slate-300' : 'text-slate-500')}>{plan.description}</p>
+                  <Link href="/login" className={cn(
+                    'block text-center py-2 rounded-lg text-sm font-semibold transition-colors',
+                    highlighted
+                      ? 'bg-[#0EA5E9] text-white hover:bg-[#0284C7]'
+                      : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  )}>
+                    Elegir {plan.name}
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

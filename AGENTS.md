@@ -29,7 +29,7 @@ npm only (package-lock.json). No lint, typecheck, or test scripts.
 - Login: `POST /auth/login` (staff, email+password) or `/auth/login/patient` (document).
 - Login response returns `{ token, user }` where `user` includes `company_id`.
 - Session: `setSession(token, user)` → cookies, 7-day expiry.
-- Axios interceptor attaches `Bearer`; on 401 removes cookies but **does not redirect** — `window.location.href = '/login'` is commented out.
+- Axios interceptor (`src/plugins/api.ts`) attaches `Bearer`; on 401 removes cookies but **does not redirect** to `/login` — there is no redirect in the interceptor.
 - `useAuth(requiredRole?)` guard — no user or wrong role → `router.replace('/login')`.
 - `AuthUser` interface: `{ id, document, email, type_user, photo, state, company_id?, roles?, permissions? }`.
 - Public only: `/login`. Root `/` redirects by `type_user` cookie.
